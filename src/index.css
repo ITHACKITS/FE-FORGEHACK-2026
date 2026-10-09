@@ -2,45 +2,32 @@
 
 /* ============================================================
    UDARA SIAGA — DESIGN SYSTEM TOKEN
-   Palette 1 (Teal/Ocean): #8AD6D1 #359FA0 #FFF0C5 #FF8C52
-   Palette 2 (Volcanic/Earth): #A14646 #DA6556 #EB895B #FDB773
-   Theme: Opsi 1 - Warm Espresso / Earthy Dark
+   Theme: Sleek Dark Aurora Glass (Get Started Iridescent Glow)
    ============================================================ */
 
 @theme {
-  /* Brand Teal / Akuamarin (Aksen Sekunder / Laut) */
-  --color-teal-300: #8AD6D1;
-  --color-teal-500: #359FA0;
-  --color-teal-600: #2a8485;
-  --color-teal-700: #1f6667;
-
-  /* Warm Cream / Pasir (Teks Terang) */
-  --color-cream-50:  #fffef9;
+  /* Aurora Primary Accents (Iridescent Aurora Palette) */
+  --color-aurora-green: #A3C9A8;
+  --color-aurora-[#7A9E7E]: #7A9E7E;
+  --color-aurora-rose: #D4A3B8;
+  --color-aurora-purple: #A393BF;
+  --color-aurora-[#5C3A47]: #5C3A47;
+  
+  /* Cream / Off-white Text */
+  --color-[#F5EFE3]: #F5EFE3;
   --color-cream-100: #FFF0C5;
-  --color-cream-200: #ffe8a3;
 
-  /* Oranye Hangat / Terracotta (Aksen Utama / CTA #EB895B) */
-  --color-ember-400: #FDB773;
-  --color-ember-500: #EB895B;
-  --color-ember-600: #FF8C52;
-  --color-ember-700: #e07440;
-
-  /* Merah Vulkanik / Bahaya */
+  /* Lava Hazard Colors */
   --color-lava-500: #DA6556;
   --color-lava-600: #A14646;
-  --color-lava-700: #7d3535;
 
-  /* Surface / Background: Warm Espresso / Charcoal Cokelat Hangat */
-  --color-surface-950: #140f0e;
-  --color-surface-900: #1c1513;
-  --color-surface-800: #261e1b;
-  --color-surface-700: #332724;
-  --color-surface-600: #443430;
+  /* Surfaces */
+  --color-surface-950: #0a0d10;
+  --color-surface-900: #12161f;
+  --color-surface-800: #1a202c;
 
-  /* Border bernuansa Terracotta Hangat */
-  --color-border-subtle: rgba(235, 137, 91, 0.2);
-  --color-border-default: rgba(235, 137, 91, 0.35);
-  --color-border-strong: rgba(235, 137, 91, 0.6);
+  /* Borders */
+  --color-border-aurora: rgba(212, 163, 184, 0.25);
 }
 
 /* ============================================================
@@ -52,8 +39,8 @@
   }
 
   body {
-    background-color: #140f0e;
-    color: #FFF0C5;
+    background-color: #090c10;
+    color: #F5EFE3;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
@@ -61,142 +48,93 @@
     font-family: 'JetBrains Mono', monospace !important;
   }
 
-  /* Scrollbar taktis hangat */
+  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
   }
   ::-webkit-scrollbar-track {
-    background: #1c1513;
+    background: #0f131a;
   }
   ::-webkit-scrollbar-thumb {
-    background: #EB895B;
+    background: #5C4A60;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #FDB773;
+    background: #A393BF;
   }
 
-  /* Leaflet popup dark override */
+  /* Leaflet popup dark aurora override */
   .leaflet-popup-content-wrapper {
-    background: #1c1513 !important;
-    color: #FFF0C5 !important;
-    border: 1px solid rgba(235, 137, 91, 0.35) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+    background: rgba(18, 22, 30, 0.95) !important;
+    color: #F5EFE3 !important;
+    border: 1px solid rgba(212, 163, 184, 0.3) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(16px) !important;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.6) !important;
   }
   .leaflet-popup-tip {
-    background: #1c1513 !important;
+    background: rgba(18, 22, 30, 0.95) !important;
   }
   .leaflet-tooltip {
-    background: #1c1513 !important;
-    color: #FFF0C5 !important;
-    border: 1px solid rgba(235, 137, 91, 0.4) !important;
-    border-radius: 6px !important;
+    background: rgba(18, 22, 30, 0.95) !important;
+    color: #F5EFE3 !important;
+    border: 1px solid rgba(212, 163, 184, 0.35) !important;
+    border-radius: 8px !important;
     font-size: 11px !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
   }
   .leaflet-tooltip::before {
-    border-top-color: rgba(235, 137, 91, 0.4) !important;
+    border-top-color: rgba(212, 163, 184, 0.35) !important;
   }
 }
 
 /* ============================================================
-   GLOBAL COMPONENT OVERRIDES
+   AURORA GLASS UTILITY CLASSES (Matching Get Started Button)
    ============================================================ */
-
-/* === NAVBAR / HEADER === */
-header {
-  background-color: #EB895B !important;
-  border-bottom-color: rgba(161, 70, 70, 0.35) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+.aurora-glass-card {
+  background: linear-gradient(135deg, rgba(22, 28, 25, 0.85) 0%, rgba(35, 25, 33, 0.85) 50%, rgba(18, 20, 30, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
 }
 
-/* === PANEL KONTROL FLOATING (ControllerDock) === */
-.controller-dock,
-[class*="bg-slate-900"],
-[class*="bg-slate-950"] {
-  --tw-bg-opacity: 1;
+.aurora-btn {
+  background: linear-gradient(135deg, rgba(42, 54, 43, 0.9) 0%, rgba(68, 45, 58, 0.9) 50%, rgba(42, 36, 58, 0.9) 100%);
+  border: 1px solid rgba(212, 163, 184, 0.35);
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* === TAILWIND COLOR REMAPPING via @layer === */
-@layer utilities {
-  /* Background remapping */
-  .bg-slate-950 { background-color: #140f0e !important; }
-  .bg-slate-900 { background-color: #1c1513 !important; }
-  .bg-slate-800 { background-color: #261e1b !important; }
-  .bg-slate-700 { background-color: #332724 !important; }
-  .bg-slate-900\/90 { background-color: rgba(28, 21, 19, 0.9) !important; }
-  .bg-slate-900\/95 { background-color: rgba(28, 21, 19, 0.95) !important; }
-  .bg-slate-950\/95 { background-color: rgba(20, 15, 14, 0.95) !important; }
-  .bg-slate-950\/80 { background-color: rgba(20, 15, 14, 0.8) !important; }
-  .bg-slate-800\/60 { background-color: rgba(38, 30, 27, 0.6) !important; }
+.aurora-btn:hover {
+  background: linear-gradient(135deg, rgba(55, 72, 56, 0.95) 0%, rgba(88, 58, 75, 0.95) 50%, rgba(55, 48, 76, 0.95) 100%);
+  border-color: rgba(212, 163, 184, 0.6);
+  box-shadow: 0 6px 24px rgba(163, 147, 191, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
 
-  /* Hover background */
-  .hover\:bg-slate-800:hover { background-color: #261e1b !important; }
-  .hover\:bg-slate-700:hover { background-color: #332724 !important; }
+.aurora-btn:active {
+  transform: translateY(0.5px) scale(0.98);
+}
 
-  /* Border remapping */
-  .border-slate-800 { border-color: rgba(235, 137, 91, 0.2) !important; }
-  .border-slate-700 { border-color: rgba(235, 137, 91, 0.3) !important; }
-  .border-slate-700\/80 { border-color: rgba(235, 137, 91, 0.28) !important; }
+.aurora-pill {
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(30, 38, 32, 0.88) 0%, rgba(48, 34, 43, 0.88) 50%, rgba(28, 25, 40, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(14px);
+}
 
-  /* Text remapping */
-  .text-slate-100 { color: #FFF0C5 !important; }
-  .text-slate-200 { color: #f5e9b5 !important; }
-  .text-slate-300 { color: #e8d7a7 !important; }
-  .text-slate-400 { color: rgba(253, 183, 115, 0.75) !important; }
-  .text-slate-500 { color: rgba(253, 183, 115, 0.5) !important; }
+/* 3D Map Viewport Perspective Container */
+.map-viewport-3d {
+  perspective: 1000px;
+  perspective-origin: 50% 50%;
+  overflow: hidden;
+}
 
-  /* Sky / Primary accent remapping -> Terracotta/Ember #EB895B */
-  .text-sky-400 { color: #FDB773 !important; }
-  .text-sky-500 { color: #EB895B !important; }
-  .bg-sky-600 { background-color: #EB895B !important; }
-  .bg-sky-700 { background-color: #FF8C52 !important; }
-  .hover\:bg-sky-500:hover { background-color: #FDB773 !important; }
-  .hover\:bg-sky-600:hover { background-color: #EB895B !important; }
-  .border-sky-500 { border-color: #EB895B !important; }
-  .border-sky-400 { border-color: #FDB773 !important; }
-  .border-sky-500\/80 { border-color: rgba(235, 137, 91, 0.8) !important; }
-  .focus\:border-sky-500:focus { border-color: #EB895B !important; }
-  .shadow-\[0_0_12px_rgba\(2\,132\,199\,0\.5\)\] {
-    box-shadow: 0 0 12px rgba(235, 137, 91, 0.45) !important;
-  }
-  .shadow-\[0_0_16px_rgba\(2\,132\,199\,0\.4\)\] {
-    box-shadow: 0 0 16px rgba(235, 137, 91, 0.4) !important;
-  }
-  .bg-sky-950\/20 { background-color: rgba(235, 137, 91, 0.15) !important; }
-
-  /* Gradient CTA button -> EB895B / DA6556 */
-  .from-sky-600 { --tw-gradient-from: #EB895B !important; }
-  .to-sky-700 { --tw-gradient-to: #DA6556 !important; }
-  .hover\:from-sky-500:hover { --tw-gradient-from: #FDB773 !important; }
-  .hover\:to-sky-600:hover { --tw-gradient-to: #EB895B !important; }
-
-  /* Amber warning */
-  .text-amber-400 { color: #FDB773 !important; }
-  .text-amber-500 { color: #EB895B !important; }
-  .bg-amber-400 { background-color: #FDB773 !important; }
-  .accent-amber-500 { accent-color: #EB895B !important; }
-
-  /* Red -> Lava */
-  .text-red-400 { color: #DA6556 !important; }
-  .text-red-500 { color: #A14646 !important; }
-  .bg-red-600 { background-color: #A14646 !important; }
-  .ring-red { border-color: #DA6556 !important; }
-
-  /* Orange -> Ember */
-  .ring-orange { border-color: #EB895B !important; }
-
-  /* Emerald pulse */
-  .bg-emerald-400 { background-color: #8AD6D1 !important; }
-
-  /* Accent inputs */
-  .accent-sky-500 { accent-color: #EB895B !important; }
-
-  /* Body background */
-  .bg-\[\#080c0e\] { background-color: #140f0e !important; }
-  .bg-\[\#0b0f14\] { background-color: #140f0e !important; }
+.map-pane-tilt {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
 }
 
 /* ============================================================

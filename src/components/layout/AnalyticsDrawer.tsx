@@ -50,12 +50,13 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
 
   return (
     <aside
-      className={`absolute top-0 right-0 w-[440px] max-w-full h-full backdrop-blur-2xl z-[1050] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+      className={`fixed sm:absolute top-0 right-0 w-full sm:w-[460px] max-w-full h-full backdrop-blur-2xl z-[1050] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
       style={{
-        background: "rgba(245, 239, 227, 0.96)",
-        borderLeft: "1px solid rgba(0, 0, 0, 0.1)",
+        background: "rgba(245, 239, 227, 0.88)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.4)",
+        boxShadow: "-8px 0 32px rgba(0, 0, 0, 0.25)",
         color: "#140f0e"
       }}
     >

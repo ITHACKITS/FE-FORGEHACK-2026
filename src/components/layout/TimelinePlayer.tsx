@@ -30,60 +30,52 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
 
   return (
     <div 
-      className={`absolute left-1/2 -translate-x-1/2 w-[min(720px,calc(100%-28px))] z-[1000] transition-transform duration-500 ease-in-out ${
-        isExpanded ? "bottom-3.5 translate-y-0" : "bottom-0 translate-y-full"
+      className={`absolute left-1/2 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-[min(720px,calc(100%-28px))] z-[1000] transition-all duration-300 ease-in-out ${
+        isExpanded ? "bottom-2 sm:bottom-3.5 translate-y-0" : "bottom-0 translate-y-full"
       }`}
     >
       {/* Tombol Toggle Slide */}
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="absolute -top-7 left-1/2 -translate-x-1/2 w-12 h-7 rounded-t-lg flex items-center justify-center cursor-pointer transition-colors shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] hover:bg-white/50"
-        style={{ background: "rgba(245, 239, 227, 0.95)", border: "1px solid rgba(0,0,0,0.1)", borderBottom: "none" }}
+        className="absolute -top-7 left-1/2 -translate-x-1/2 w-12 h-7 rounded-t-xl flex items-center justify-center cursor-pointer transition-colors shadow-lg aurora-glass-card border-b-0 text-purple-300 hover:text-white"
         title={isExpanded ? "Sembunyikan Horizon Waktu" : "Tampilkan Horizon Waktu"}
       >
         {isExpanded ? (
-          <ChevronDown className="w-5 h-5 text-[#EB895B]" />
+          <ChevronDown className="w-4 h-4" />
         ) : (
-          <ChevronUp className="w-5 h-5 text-[#EB895B]" />
+          <ChevronUp className="w-4 h-4" />
         )}
       </button>
 
       {/* Main Panel */}
       <div 
-        className="w-full backdrop-blur-xl rounded-xl px-4 py-2.5 shadow-2xl text-[#140f0e]"
-        style={{ background: "rgba(245, 239, 227, 0.95)", border: "1px solid rgba(0,0,0,0.1)" }}
+        className="w-full aurora-glass-card rounded-2xl px-3 sm:px-4 py-2.5 shadow-2xl text-slate-100 transition-all"
       >
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="w-6 h-6 rounded-full flex items-center justify-center transition cursor-pointer hover:opacity-80 shadow-sm"
-              style={{ background: "#EB895B" }}
+              className="w-7 h-7 rounded-full flex items-center justify-center transition cursor-pointer aurora-btn shrink-0"
               title={isPlaying ? "Jeda Animasi" : "Putar Animasi"}
             >
-              {isPlaying ? <Pause className="w-3 h-3 text-white" /> : <Play className="w-3 h-3 fill-white text-white" />}
+              {isPlaying ? <Pause className="w-3.5 h-3.5 text-white" /> : <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />}
             </button>
-            <span className="text-xs font-bold" style={{ color: "#140f0e" }}>Horizon Waktu:</span>
-            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded shadow-sm" style={{ background: "#FFFFFF", border: "1px solid rgba(0,0,0,0.1)", color: "#140f0e" }}>
+            <span className="text-xs font-bold text-white">Horizon Waktu:</span>
+            <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded-lg bg-black/40 border border-white/15 text-emerald-300 shadow-xs">
               {formatHour(currentHour)}
             </span>
           </div>
 
-          <div className="flex gap-1">
+          <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5">
             {quickSteps.map((step) => (
               <button
                 key={step}
                 onClick={() => onHourChange(step)}
-                className={`text-[10px] px-2 py-0.5 rounded border transition cursor-pointer shadow-sm ${
+                className={`text-[10px] px-2.5 py-1 rounded-full border transition cursor-pointer shrink-0 shadow-xs ${
                   currentHour === step
-                    ? "font-bold"
-                    : "hover:bg-black/5"
+                    ? "font-extrabold bg-gradient-to-r from-emerald-600/80 to-rose-600/80 border-white/40 text-white shadow-md"
+                    : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 font-medium"
                 }`}
-                style={currentHour === step ? {
-                  background: "#EB895B", color: "#FFFFFF", borderColor: "#EB895B"
-                } : {
-                  background: "#FFFFFF", color: "rgba(20, 15, 14, 0.7)", borderColor: "rgba(0,0,0,0.1)"
-                }}
               >
                 T+{step}h
               </button>
@@ -99,10 +91,9 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
             step={1}
             value={currentHour}
             onChange={(e) => onHourChange(parseInt(e.target.value, 10))}
-            className="w-full cursor-pointer"
-            style={{ accentColor: "#EB895B" }}
+            className="w-full cursor-pointer accent-emerald-400"
           />
-          <div className="flex justify-between font-mono text-[9px] mt-0.5 font-medium" style={{ color: "rgba(20, 15, 14, 0.6)" }}>
+          <div className="flex justify-between font-mono text-[9px] mt-0.5 font-bold text-slate-400">
             <span>00:00 (Awal)</span>
             <span>12:00</span>
             <span>24:00</span>

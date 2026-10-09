@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Compass, Plus, Minus, Layers, X } from "lucide-react";
+import { Compass, Plus, Minus, Layers, X, LocateFixed, User, Eye, RotateCcw, Info } from "lucide-react";
 import { CONFIG } from "../../config/constants";
 import { api } from "../../services/api";
 import { formatHour } from "../../utils/formatters";
@@ -42,6 +42,15 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const [showAirports, setShowAirports] = useState(true);
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
 
+  // Google Earth 3D & Location State
+  const [is3DMode, setIs3DMode] = useState(false);
+  const [tilt, setTilt] = useState(0);
+  const [heading, setHeading] = useState(0);
+  const [isTiltPopoverOpen, setIsTiltPopoverOpen] = useState(false);
+  const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
+  const [streetViewCoords, setStreetViewCoords] = useState<[number, number] | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+
   const volcanoesLayerRef = useRef<L.GeoJSON | null>(null);
   const hotspotsLayerRef = useRef<L.GeoJSON | null>(null);
   const schoolsLayerRef = useRef<L.GeoJSON | null>(null);
@@ -50,6 +59,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const plumeLayerRef = useRef<L.GeoJSON | null>(null);
   const krbCircleRef = useRef<L.Circle | null>(null);
   const evacRouteLineRef = useRef<L.Polyline | null>(null);
+  const userLocationMarkerRef = useRef<L.Marker | null>(null);
   const volcanoesDataRef = useRef<any[]>([]);
   const forestsDataRef = useRef<any[]>([]);
 
@@ -58,7 +68,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     if (labelsTileLayerRef.current) map.removeLayer(labelsTileLayerRef.current);
 
     if (type === "satellite") {
-      // 1. Esri World Imagery (Citra Satelit & Relief Permukaan / Batimetri Laut)
       baseTileLayerRef.current = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
@@ -67,7 +76,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         }
       ).addTo(map);
 
-      // 2. Esri World Boundaries and Places (Label Kota, Jalan, & Batas Wilayah)
       labelsTileLayerRef.current = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
         {
@@ -76,7 +84,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         }
       ).addTo(map);
     } else {
-      // Tampilan Taktis Gelap (OSM + Inverted Dark Filter)
       baseTileLayerRef.current = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap | PVMBG &bull; NASA FIRMS &bull; Open-Meteo",
         className: "dark-tiles",
@@ -86,6 +93,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   };
 
   const handleResetIndonesia = () => {
+    setHeading(0);
+    setTilt(0);
+    setIs3DMode(false);
     if (mapRef.current) {
       mapRef.current.flyTo(
         [CONFIG.DEFAULT_MAP_VIEW.lat, CONFIG.DEFAULT_MAP_VIEW.lng],
@@ -95,7 +105,69 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
   };
 
-  // Inisialisasi Peta Leaflet
+  const handleShowMyLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Browser Anda tidak mendukung layanan lokasi Geolocation.");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const { latitude, longitude } = pos.coords;
+        if (mapRef.current) {
+          mapRef.current.flyTo([latitude, longitude], 13, { duration: 1.5 });
+
+          if (userLocationMarkerRef.current) {
+            mapRef.current.removeLayer(userLocationMarkerRef.current);
+          }
+
+          const pulseIcon = L.divIcon({
+            className: "user-gps-marker",
+            html: `
+              <div class="relative flex items-center justify-center w-8 h-8">
+                <span class="absolute inline-flex w-full h-full rounded-full bg-sky-400 opacity-75 animate-ping"></span>
+                <span class="relative inline-flex w-4 h-4 rounded-full bg-sky-500 border-2 border-white shadow-lg"></span>
+              </div>
+            `,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+          });
+
+          userLocationMarkerRef.current = L.marker([latitude, longitude], { icon: pulseIcon }).addTo(mapRef.current);
+          userLocationMarkerRef.current.bindPopup(`<strong class="text-xs">📍 Lokasi Anda Saat Ini</strong>`).openPopup();
+        }
+      },
+      (err) => {
+        setIsLocating(false);
+        alert(`Gagal mengambil lokasi: ${err.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleOpenStreetView = () => {
+    if (mapRef.current) {
+      const center = mapRef.current.getCenter();
+      setStreetViewCoords([center.lat, center.lng]);
+      setIsStreetViewOpen(true);
+    }
+  };
+
+  const handleToggle3D = () => {
+    if (!is3DMode) {
+      setIs3DMode(true);
+      setTilt(40);
+      setIsTiltPopoverOpen(true);
+    } else {
+      setIs3DMode(false);
+      setTilt(0);
+      setHeading(0);
+      setIsTiltPopoverOpen(false);
+    }
+  };
+
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -108,21 +180,17 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       zoomControl: false
     });
 
-    // Pasang Basemap Default (Satelit Esri + Labels)
     applyBasemap(map, "satellite");
-
     mapRef.current = map;
 
-    // Load Coastline fallback
     api.getCoastline()
       .then((geo) => {
         L.geoJSON(geo, {
-          style: { color: "#8AD6D1", weight: 0.8, opacity: 0.35 }
+          style: { color: "#A3C9A8", weight: 0.8, opacity: 0.35 }
         }).addTo(map);
       })
       .catch(() => {});
 
-    // Load Layers
     loadVolcanoes(map);
     loadForests();
     loadHotspots(map);
@@ -134,7 +202,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     };
   }, []);
 
-  // Reset View Handler
   useEffect(() => {
     if (resetViewTrigger > 0 && mapRef.current) {
       mapRef.current.flyTo(
@@ -145,7 +212,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
   }, [resetViewTrigger]);
 
-  // Otomatis arahkan kamera peta ke lokasi kejadian terpilih
   const EVENT_COORDS: Record<string, [number, number, number]> = {
     anak_krakatau_2026_09: [-6.102, 105.423, 9],
     merapi_yogyakarta: [-7.540, 110.446, 10],
@@ -191,7 +257,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   }, [showAirports]);
 
   useEffect(() => {
-    // Terbang ke episentrum kejadian saat eventId atau hazard berubah
+    if (!mapRef.current) return;
     if (prevEventIdRef.current !== eventId) {
       prevEventIdRef.current = eventId;
       if (mapRef.current && eventId) {
@@ -407,7 +473,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     krbCircleRef.current.bindTooltip(`Zona Rekomendasi Bahaya PVMBG (${radiusKm} km)`, { sticky: true });
   };
 
-  // Render Poligon Plume saat jam berubah atau cache diperbarui
   useEffect(() => {
     if (!mapRef.current || !hourlyTiersCache) return;
 
@@ -444,7 +509,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }).addTo(map);
   }, [currentHour, hourlyTiersCache, hazard, showPlume]);
 
-  // Gambar Rute Evakuasi
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
@@ -465,124 +529,312 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   }, [evacuationRoute]);
 
   return (
-    <div className="relative w-full h-full">
-      <div ref={mapContainerRef} className="w-full h-full bg-[#140f0e]" />
+    <div className="relative w-full h-full overflow-hidden map-viewport-3d bg-[#090c10]">
+      {/* Container Leaflet Canvas dengan 3D CSS Perspective Tilt/Heading Transform */}
+      <div 
+        ref={mapContainerRef} 
+        className="w-full h-full map-pane-tilt"
+        style={{
+          transform: `perspective(900px) rotateX(${tilt}deg) rotateZ(${heading}deg) scale(${1 + tilt * 0.003})`,
+          transformOrigin: "50% 50%"
+        }}
+      />
 
       {/* 3. Panel Lapisan Spasial Aktif (Kiri Bawah) */}
       {!isLayerPanelOpen ? (
         <button
           onClick={() => setIsLayerPanelOpen(true)}
-          className="absolute bottom-6 left-4 z-[500] w-10 h-10 rounded-full shadow-2xl flex items-center justify-center transition cursor-pointer active:scale-95 group"
-          style={{
-            background: "rgba(245, 239, 227, 0.95)",
-            border: "1px solid rgba(235, 137, 91, 0.45)",
-            color: "#EB895B"
-          }}
+          className="absolute bottom-20 left-2 sm:bottom-6 sm:left-4 z-[500] w-10 h-10 rounded-2xl shadow-2xl flex items-center justify-center transition cursor-pointer active:scale-95 group aurora-glass-card"
           title="Tampilkan Lapisan Spasial"
         >
-          <Layers className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          <Layers className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
         </button>
       ) : (
         <div
-          className="absolute bottom-6 left-4 z-[500] rounded-xl p-3.5 shadow-2xl flex flex-col gap-3 backdrop-blur-md text-[#140f0e]"
-          style={{
-            background: "rgba(245, 239, 227, 0.95)",
-            border: "1px solid rgba(235, 137, 91, 0.4)",
-            minWidth: "220px"
-          }}
+          className="absolute bottom-20 left-2 sm:bottom-6 sm:left-4 z-[500] rounded-2xl p-3.5 shadow-2xl flex flex-col gap-2.5 aurora-glass-card text-slate-100 transition-all duration-300 max-w-[calc(100%-1rem)]"
+          style={{ minWidth: "200px" }}
         >
-          <div className="flex items-center justify-between border-b pb-2 mb-1" style={{ borderColor: "rgba(0, 0, 0, 0.1)" }}>
-            <h3 className="text-[10px] font-extrabold tracking-widest uppercase" style={{ color: "#EB895B" }}>
+          <div className="flex items-center justify-between border-b pb-2 mb-0.5 border-white/10">
+            <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-300">
               Lapisan Spasial Aktif
             </h3>
-            <button onClick={() => setIsLayerPanelOpen(false)} className="text-[#EB895B] hover:text-slate-800 transition cursor-pointer opacity-80 hover:opacity-100" title="Sembunyikan Panel">
+            <button onClick={() => setIsLayerPanelOpen(false)} className="text-slate-400 hover:text-white transition cursor-pointer p-0.5" title="Sembunyikan Panel">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
           
-          <label className="flex items-center gap-3 text-xs font-medium cursor-pointer hover:opacity-80 transition">
-            <input type="checkbox" checked={showVolcanoes} onChange={(e) => setShowVolcanoes(e.target.checked)} className="w-3.5 h-3.5 accent-[#EB895B]" />
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showVolcanoes} onChange={(e) => setShowVolcanoes(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/1_normal.png" className="w-4 h-4 object-contain" />
             <span>Gunungapi PVMBG</span>
           </label>
           
-          <label className="flex items-center gap-3 text-xs font-medium cursor-pointer hover:opacity-80 transition">
-            <input type="checkbox" checked={showHotspots} onChange={(e) => setShowHotspots(e.target.checked)} className="w-3.5 h-3.5 accent-[#EB895B]" />
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showHotspots} onChange={(e) => setShowHotspots(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/titik_api.png" className="w-4 h-4 object-contain" />
             <span>Titik Api NASA FIRMS</span>
           </label>
 
-          <label className="flex items-center gap-3 text-xs font-medium cursor-pointer hover:opacity-80 transition">
-            <input type="checkbox" checked={showPlume} onChange={(e) => setShowPlume(e.target.checked)} className="w-3.5 h-3.5 accent-[#EB895B]" />
-            <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "rgba(253, 183, 115, 0.3)", border: "1px dashed #FDB773" }}></div>
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showPlume} onChange={(e) => setShowPlume(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
+            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(253, 183, 115, 0.3)", border: "1px dashed #FDB773" }}></div>
             <span>Peluang Dispersi</span>
           </label>
 
-          <label className="flex items-center gap-3 text-xs font-medium cursor-pointer hover:opacity-80 transition">
-            <input type="checkbox" checked={showSchools} onChange={(e) => setShowSchools(e.target.checked)} className="w-3.5 h-3.5 accent-[#EB895B]" />
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showSchools} onChange={(e) => setShowSchools(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/school.png" className="w-4 h-4 object-contain" />
             <span>Fasilitas Sekolah</span>
           </label>
 
-          <label className="flex items-center gap-3 text-xs font-medium cursor-pointer hover:opacity-80 transition">
-            <input type="checkbox" checked={showHospitals} onChange={(e) => setShowHospitals(e.target.checked)} className="w-3.5 h-3.5 accent-[#EB895B]" />
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showHospitals} onChange={(e) => setShowHospitals(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/hospital.png" className="w-4 h-4 object-contain" />
             <span>Fasilitas Kesehatan</span>
           </label>
 
-          <label className="flex items-center gap-3 text-xs font-medium cursor-pointer hover:opacity-80 transition">
-            <input type="checkbox" checked={showAirports} onChange={(e) => setShowAirports(e.target.checked)} className="w-3.5 h-3.5 accent-[#EB895B]" />
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showAirports} onChange={(e) => setShowAirports(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/plane.png" className="w-4 h-4 object-contain" />
             <span>Bandara Udara</span>
           </label>
         </div>
       )}
 
-      {/* 2. Kontrol Navigasi Kanan Bawah: Tombol Bulat Reset Indonesia + Zoom (+ / -) */}
-      <div className="absolute bottom-6 right-4 flex flex-col items-center gap-2 z-[500]">
-        {/* Tombol Bulat Reset Tampilan Peta ke Seluruh Indonesia (Gaya Maps) */}
-        <button
-          type="button"
-          onClick={handleResetIndonesia}
-          className="w-10 h-10 rounded-full shadow-2xl flex items-center justify-center transition cursor-pointer active:scale-95 group"
-          style={{
-            background: "rgba(245, 239, 227, 0.95)",
-            border: "1px solid rgba(235, 137, 91, 0.45)",
-            color: "#EB895B"
-          }}
-          title="Reset Tampilan Peta ke Seluruh Wilayah Indonesia"
-        >
-          <Compass className="w-5 h-5 group-hover:rotate-45 transition-transform duration-300" />
-        </button>
-
-        {/* Tombol Navigasi Zoom (+ dan -) */}
+      {/* Google Earth 3D Tilt & Heading Popover Dialog (Gambar 1) */}
+      {isTiltPopoverOpen && (
         <div
-          className="flex flex-col rounded-lg overflow-hidden shadow-2xl"
-          style={{
-            background: "rgba(245, 239, 227, 0.95)",
-            border: "1px solid rgba(235, 137, 91, 0.35)",
-            color: "#140f0e"
-          }}
+          className="absolute bottom-36 right-4 z-[600] w-80 rounded-2xl p-4 shadow-2xl aurora-glass-card text-slate-100 border border-white/20 animate-in fade-in slide-in-from-bottom-3 duration-200"
         >
+          <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-sky-400" />
+              <h3 className="text-xs font-extrabold text-white">Google Earth 3D Controls</h3>
+            </div>
+            <button
+              onClick={() => setIsTiltPopoverOpen(false)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Keyboard Shortcuts Info Box */}
+          <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs space-y-2 mb-3">
+            <span className="font-bold block text-white text-[11px]">Keyboard shortcuts</span>
+            <p className="text-[10px] leading-relaxed text-slate-300">
+              You can hold <kbd className="px-1 py-0.5 rounded bg-white/20 font-mono text-[9px]">Shift</kbd> while dragging the Earth to tilt and rotate, or <kbd className="px-1 py-0.5 rounded bg-white/20 font-mono text-[9px]">Control</kbd> to look around.
+            </p>
+            <div className="flex justify-between pt-1 font-bold text-[10px] text-sky-400">
+              <button onClick={() => setIsTiltPopoverOpen(false)} className="hover:underline cursor-pointer">Got it</button>
+              <a href="#" onClick={(e) => { e.preventDefault(); alert("Rotasi 3D memungkinkan eksplorasi sudut elevasi gunung api dan kontur dispersi!"); }} className="hover:underline">Learn more</a>
+            </div>
+          </div>
+
+          {/* Tilt Slider */}
+          <div className="space-y-1 mb-3">
+            <div className="flex justify-between text-xs font-semibold text-slate-200">
+              <span>Tilt (Sudut Kemiringan):</span>
+              <span className="font-mono text-sky-300">{tilt}°</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={60}
+              value={tilt}
+              onChange={(e) => {
+                setTilt(Number(e.target.value));
+                if (Number(e.target.value) > 0) setIs3DMode(true);
+              }}
+              className="w-full accent-sky-400 cursor-pointer"
+            />
+          </div>
+
+          {/* Heading Slider */}
+          <div className="space-y-1 mb-3">
+            <div className="flex justify-between text-xs font-semibold text-slate-200">
+              <span>Heading (Rotasi Kompas):</span>
+              <span className="font-mono text-purple-300">{heading}°</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={360}
+              value={heading}
+              onChange={(e) => setHeading(Number(e.target.value))}
+              className="w-full accent-purple-400 cursor-pointer"
+            />
+          </div>
+
+          {/* Reset to North Button */}
+          <div className="flex justify-between items-center pt-1 border-t border-white/10">
+            <button
+              onClick={() => {
+                setHeading(0);
+                setTilt(0);
+                setIs3DMode(false);
+              }}
+              className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset to north</span>
+            </button>
+            <button
+              onClick={handleResetIndonesia}
+              className="text-[10px] px-2.5 py-1 rounded-full aurora-btn text-white"
+            >
+              Reset Peta
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* GOOGLE EARTH-STYLE FLOATING SUITE CONTROL DOCK (Kanan Bawah - Gambar 1) */}
+      <div className="absolute bottom-20 right-2 sm:bottom-6 sm:right-4 flex items-center gap-2 z-[500]">
+        {/* Container Tombol Bulat Khas Google Earth */}
+        <div className="flex items-center gap-1.5 p-1 rounded-full aurora-glass-card shadow-2xl border border-white/20">
+          {/* 1. Street View Pegman Icon Button */}
           <button
             type="button"
-            onClick={() => mapRef.current?.zoomIn()}
-            className="w-9 h-9 flex items-center justify-center transition cursor-pointer active:scale-95 hover:bg-black/5"
-            style={{ borderBottom: "1px solid rgba(0, 0, 0, 0.1)" }}
-            title="Perbesar Peta (Zoom In)"
+            onClick={handleOpenStreetView}
+            className="w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer hover:scale-110 active:scale-95 bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-md"
+            title="Show Street View (Google Maps 360 Viewer)"
           >
-            <Plus className="w-4 h-4" />
+            <User className="w-4 h-4" />
           </button>
+
+          {/* 2. Show Your Location (Geolocation API) Button */}
+          <button
+            type="button"
+            onClick={handleShowMyLocation}
+            disabled={isLocating}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer hover:scale-110 active:scale-95 border shadow-md ${
+              isLocating
+                ? "bg-sky-500/40 text-sky-300 animate-pulse border-sky-400"
+                : "bg-white/10 text-slate-200 border-white/15 hover:bg-white/20"
+            }`}
+            title="Show your location (GPS Lokasi Anda)"
+          >
+            <LocateFixed className={`w-4 h-4 ${isLocating ? "animate-spin" : ""}`} />
+          </button>
+
+          {/* 3. 3D Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={handleToggle3D}
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold transition cursor-pointer hover:scale-110 active:scale-95 border shadow-md ${
+              is3DMode
+                ? "bg-emerald-500/30 text-emerald-300 border-emerald-400/50 shadow-emerald-500/20"
+                : "bg-white/10 text-slate-200 border-white/15 hover:bg-white/20"
+            }`}
+            title="Toggle 3D Perspective Mode & Controls"
+          >
+            3D
+          </button>
+
+          {/* 4. Compass Needle Heading Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (heading !== 0) setHeading(0);
+              else setIsTiltPopoverOpen(!isTiltPopoverOpen);
+            }}
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-blue-600/90 text-white shadow-md hover:scale-110 transition cursor-pointer relative overflow-hidden border border-blue-400/40"
+            title={`Compass Heading (${heading}°). Click to reset North.`}
+          >
+            <div
+              className="w-full h-full flex items-center justify-center transition-transform duration-300"
+              style={{ transform: `rotate(${-heading}deg)` }}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                <polygon points="12,2 15,12 12,10 9,12" fill="#FF4D4D" />
+                <polygon points="12,22 15,12 12,10 9,12" fill="#FFFFFF" />
+              </svg>
+            </div>
+          </button>
+        </div>
+
+        {/* 5. Combined Zoom Control Pill (- / +) */}
+        <div
+          className="flex items-center rounded-full overflow-hidden shadow-2xl aurora-glass-card border border-white/20"
+        >
           <button
             type="button"
             onClick={() => mapRef.current?.zoomOut()}
-            className="w-9 h-9 flex items-center justify-center transition cursor-pointer active:scale-95 hover:bg-black/5"
+            className="w-8 h-9 flex items-center justify-center transition cursor-pointer active:scale-95 hover:bg-white/10 text-white border-r border-white/10"
             title="Perkecil Peta (Zoom Out)"
           >
-            <Minus className="w-4 h-4" />
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => mapRef.current?.zoomIn()}
+            className="w-8 h-9 flex items-center justify-center transition cursor-pointer active:scale-95 hover:bg-white/10 text-white"
+            title="Perbesar Peta (Zoom In)"
+          >
+            <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      {/* STREET VIEW 360 PANORAMA MODAL */}
+      {isStreetViewOpen && streetViewCoords && (
+        <div
+          className="fixed inset-0 z-[1300] flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setIsStreetViewOpen(false)}
+        >
+          <div
+            className="w-full max-w-4xl h-[80vh] rounded-3xl overflow-hidden shadow-2xl aurora-glass-card flex flex-col border border-white/20 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-5 py-3 flex items-center justify-between bg-black/40 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h3 className="text-sm font-extrabold text-white">Google Street View 360° Interactive</h3>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Koordinat: {streetViewCoords[0].toFixed(4)}, {streetViewCoords[1].toFixed(4)}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsStreetViewOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Embedded StreetView iframe viewer */}
+            <div className="flex-1 w-full bg-black relative">
+              <iframe
+                title="Google Street View Panorama"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                src={`https://maps.google.com/maps?q=${streetViewCoords[0]},${streetViewCoords[1]}&layer=c&cbll=${streetViewCoords[0]},${streetViewCoords[1]}&cbp=12,0,0,0,0&output=embed`}
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-2.5 bg-black/40 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
+              <span className="flex items-center gap-1.5 text-[11px]">
+                <Info className="w-3.5 h-3.5 text-sky-400" />
+                Seret tetikus pada jendela panorama untuk melihat sekeliling lokasi secara 360°.
+              </span>
+              <button
+                onClick={() => setIsStreetViewOpen(false)}
+                className="px-4 py-1 rounded-full aurora-btn text-xs font-bold"
+              >
+                Tutup Viewer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
