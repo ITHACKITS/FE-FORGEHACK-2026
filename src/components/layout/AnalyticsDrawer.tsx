@@ -41,55 +41,40 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("impact");
 
   const tabs = [
-    { id: "impact", label: "Dampak", icon: BarChart3 },
-    { id: "schools", label: "Sekolah", icon: GraduationCap },
-    { id: "evac", label: "Evakuasi", icon: Ambulance },
-    { id: "health", label: "APD", icon: ShieldAlert },
-    { id: "science", label: "Sains", icon: FlaskConical }
+    { id: "impact", label: "Impact", icon: BarChart3 },
+    { id: "schools", label: "Schools", icon: GraduationCap },
+    { id: "evac", label: "Evacuation", icon: Ambulance },
+    { id: "health", label: "PPE / Health", icon: ShieldAlert },
+    { id: "science", label: "Science", icon: FlaskConical }
   ] as const;
 
   return (
     <aside
-      className={`fixed sm:absolute top-0 right-0 w-full sm:w-[460px] max-w-full h-full backdrop-blur-2xl z-[1050] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
-        isOpen ? "translate-x-0" : "translate-x-full"
+      className={`fixed sm:absolute top-16 right-2 sm:right-4 w-[calc(100%-1rem)] sm:w-[460px] max-w-full h-[calc(100vh-5rem)] max-h-[calc(100vh-5rem)] aurora-glass-card rounded-3xl border border-white/20 z-[1050] flex flex-col shadow-2xl transition-transform duration-300 ease-out text-slate-100 overflow-hidden ${
+        isOpen ? "translate-x-0" : "translate-x-[120%]"
       }`}
-      style={{
-        background: "rgba(245, 239, 227, 0.88)",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.4)",
-        boxShadow: "-8px 0 32px rgba(0, 0, 0, 0.25)",
-        color: "#140f0e"
-      }}
     >
-      {/* Header Drawer */}
-      <div
-        className="h-12 px-4 flex items-center justify-between shrink-0"
-        style={{
-          borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
-          background: "#F5EFE3"
-        }}
-      >
+      {/* Drawer Header */}
+      <div className="h-13 px-4 py-2.5 flex items-center justify-between shrink-0 bg-black/40 border-b border-white/10">
         <div>
-          <span className="font-bold text-xs block" style={{ color: "#140f0e" }}>Proyeksi Dampak &amp; Aksi Dini</span>
-          <span className="text-[10px]" style={{ color: "rgba(20, 15, 14, 0.6)" }}>Hasil Ansambel Multi-Bahaya 48 Jam</span>
+          <span className="font-extrabold text-xs block text-white tracking-wide">
+            Impact Projection &amp; Early Action
+          </span>
+          <span className="text-[10px] text-slate-400">
+            48-Hour Multi-Hazard Ensemble Simulation
+          </span>
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg transition cursor-pointer hover:bg-black/5"
-          style={{ color: "#140f0e" }}
-          title="Tutup Panel"
+          className="p-1.5 rounded-full transition cursor-pointer hover:bg-white/10 text-slate-300 hover:text-white"
+          title="Close Panel"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* 5 Tab Navigation */}
-      <nav
-        className="grid grid-cols-5 shrink-0"
-        style={{
-          background: "rgba(238, 230, 215, 0.8)",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.08)"
-        }}
-      >
+      <nav className="grid grid-cols-5 shrink-0 bg-black/30 border-b border-white/10">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -97,16 +82,11 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className="py-2.5 px-1 text-[10px] font-medium flex flex-col items-center gap-1 border-b-2 transition cursor-pointer hover:bg-black/5"
-              style={isActive ? {
-                borderColor: "#EB895B",
-                color: "#EB895B",
-                background: "rgba(235, 137, 91, 0.12)",
-                fontWeight: 700
-              } : {
-                borderColor: "transparent",
-                color: "rgba(20, 15, 14, 0.6)"
-              }}
+              className={`py-2.5 px-1 text-[10px] font-medium flex flex-col items-center gap-1 border-b-2 transition cursor-pointer ${
+                isActive
+                  ? "border-emerald-400 text-emerald-300 bg-emerald-500/15 font-bold"
+                  : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5"
+              }`}
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{t.label}</span>
@@ -116,7 +96,7 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
       </nav>
 
       {/* Content Body */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 bg-[#0f131a]/80">
         {activeTab === "impact" && (
           <TabImpact impact={impact} hazard={hazard} rainMm={rainMm} />
         )}
@@ -139,3 +119,5 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
     </aside>
   );
 };
+
+export default AnalyticsDrawer;

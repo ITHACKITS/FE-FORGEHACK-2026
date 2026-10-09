@@ -36,53 +36,50 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
   activeRunId
 }) => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
-    // Auto collapse on small screens for better map visibility by default
     return typeof window !== "undefined" && window.innerWidth < 640;
   });
   const [volcanoGroups, setVolcanoGroups] = useState<Record<string, any[]>>({});
   const [forestGroups, setForestGroups] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
-    // 1. Muat 70 Gunungapi Nasional dari Backend (PVMBG)
     api.getNationalVolcanoes()
       .then((geo) => {
         const features = geo?.features || [];
         const groups: Record<string, any[]> = {
-          "Sumatera": [],
-          "Jawa": [],
+          "Sumatra": [],
+          "Java": [],
           "Bali & Nusa Tenggara": [],
           "Sulawesi": [],
           "Maluku & Papua": []
         };
         features.forEach((f: any) => {
-          const reg = f.properties?.region || "Lainnya";
+          const reg = f.properties?.region || "Other";
           if (!groups[reg]) groups[reg] = [];
           groups[reg].push(f);
         });
         setVolcanoGroups(groups);
       })
-      .catch((err) => console.error("Gagal memuat katalog gunung:", err));
+      .catch((err) => console.error("Failed loading volcanoes catalog:", err));
 
-    // 2. Muat 36 Kawasan Hutan & Gambut dari Backend
     api.getNationalForests()
       .then((forests) => {
         const list = Array.isArray(forests) ? forests : (forests?.forests || []);
         const groups: Record<string, any[]> = {
-          "Sumatera": [],
+          "Sumatra": [],
           "Kalimantan": [],
-          "Jawa": [],
+          "Java": [],
           "Bali & Nusa Tenggara": [],
           "Sulawesi": [],
           "Maluku & Papua": []
         };
         list.forEach((k: any) => {
-          const reg = k.region || "Lainnya";
+          const reg = k.region || "Other";
           if (!groups[reg]) groups[reg] = [];
           groups[reg].push(k);
         });
         setForestGroups(groups);
       })
-      .catch((err) => console.error("Gagal memuat katalog hutan:", err));
+      .catch((err) => console.error("Failed loading forest catalog:", err));
   }, []);
 
   return (
@@ -99,14 +96,14 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
             <Zap className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
-            <span className="font-extrabold text-xs block text-white">Pusat Kendali Simulasi</span>
-            <span className="text-[10px] font-medium text-slate-400">Model Lagrangian RK2 (15 Ansambel)</span>
+            <span className="font-extrabold text-xs block text-white">Simulation Control Center</span>
+            <span className="text-[10px] font-medium text-slate-400">Lagrangian RK2 Model (15 Ensembles)</span>
           </div>
         </div>
         <div className="flex items-center gap-1">
           {isCollapsed && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-600 to-rose-600 text-white animate-pulse sm:hidden">
-              Buka
+              Open
             </span>
           )}
           <button
@@ -116,7 +113,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
               setIsCollapsed(!isCollapsed);
             }}
             className="p-1.5 rounded-lg transition cursor-pointer hover:bg-white/10 text-slate-300"
-            title={isCollapsed ? "Buka Panel" : "Ciutkan Panel"}
+            title={isCollapsed ? "Open Panel" : "Collapse Panel"}
           >
             {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
           </button>
@@ -126,25 +123,25 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
       {/* Body Dock */}
       {!isCollapsed && (
         <div className="p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-210px)]">
-          {/* Pilihan Bahaya */}
+          {/* Hazard Selection */}
           <div>
             <label className="block text-[11px] font-bold mb-1.5 text-slate-300">
-              Jenis Bahaya Atmosfer:
+              Atmospheric Hazard Type:
             </label>
             <select
               value={hazard}
               onChange={(e) => onHazardChange(e.target.value as HazardType)}
               className="w-full rounded-xl px-3 py-2 text-xs outline-none transition font-medium bg-black/40 border border-white/15 text-white shadow-xs focus:border-purple-400"
             >
-              <option value="volcano">🌋 Erupsi Gunung Api (Abu Vulkanik)</option>
-              <option value="fire">🔥 Karhutla Gambut (Asap PM2.5)</option>
+              <option value="volcano">🌋 Volcanic Eruption (Ash Plume)</option>
+              <option value="fire">🔥 Peatland Wildfire (PM2.5 Smoke)</option>
             </select>
           </div>
 
-          {/* Pilihan Kejadian */}
+          {/* Event Location Selection */}
           <div>
             <label className="block text-[11px] font-bold mb-1.5 text-slate-300">
-              Lokasi Kejadian (Nasional):
+              Hazard Location (National):
             </label>
             <select
               value={eventId}
@@ -156,14 +153,14 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                   Object.entries(volcanoGroups).map(([reg, list]) => {
                     if (list.length === 0) return null;
                     return (
-                      <optgroup key={reg} label={`Gunung Api ${reg} (${list.length})`} className="bg-slate-900 text-white">
+                      <optgroup key={reg} label={`Volcanoes ${reg} (${list.length})`} className="bg-slate-900 text-white">
                         {list.map((f) => {
                           const p = f.properties || f;
                           const id = p.event_id || p.id;
                           const lvlName = p.level_name ? p.level_name.split(' ')[0] + ' ' + (p.level_name.split(' ')[1] || '') : `Level ${p.level || 1}`;
                           return (
                             <option key={id} value={id}>
-                              {`[${lvlName}] ${p.name} (${p.province}) - ${p.elevation_m}m`}
+                              {`[${lvlName}] Mt. ${p.name} (${p.province}) - ${p.elevation_m}m`}
                             </option>
                           );
                         })}
@@ -171,15 +168,15 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                     );
                   })
                 ) : (
-                  <optgroup label="Gunungapi Aktif PVMBG" className="bg-slate-900 text-white">
-                    <option value="anak_krakatau_2026_09">[Level III] G. Anak Krakatau (Selat Sunda)</option>
-                    <option value="merapi_yogyakarta">[Level III] G. Merapi (Jawa Tengah / DIY)</option>
-                    <option value="lewotobi_laki_laki">[Level IV] G. Lewotobi Laki-laki (NTT)</option>
-                    <option value="marapi_sumatera">[Level III] G. Marapi (Sumatera Barat)</option>
-                    <option value="semeru">[Level III] G. Semeru (Jawa Timur)</option>
-                    <option value="agung">[Level II] G. Agung (Bali)</option>
-                    <option value="rinjani">[Level II] G. Rinjani (Lombok, NTB)</option>
-                    <option value="sinabung">[Level II] G. Sinabung (Sumatera Utara)</option>
+                  <optgroup label="Active PVMBG Volcanoes" className="bg-slate-900 text-white">
+                    <option value="anak_krakatau_2026_09">[Level III] Mt. Anak Krakatau (Sunda Strait)</option>
+                    <option value="merapi_yogyakarta">[Level III] Mt. Merapi (Central Java / DIY)</option>
+                    <option value="lewotobi_laki_laki">[Level IV] Mt. Lewotobi Laki-laki (NTT)</option>
+                    <option value="marapi_sumatera">[Level III] Mt. Marapi (West Sumatra)</option>
+                    <option value="semeru">[Level III] Mt. Semeru (East Java)</option>
+                    <option value="agung">[Level II] Mt. Agung (Bali)</option>
+                    <option value="rinjani">[Level II] Mt. Rinjani (Lombok, NTB)</option>
+                    <option value="sinabung">[Level II] Mt. Sinabung (North Sumatra)</option>
                   </optgroup>
                 )
               ) : (
@@ -187,34 +184,32 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                   Object.entries(forestGroups).map(([reg, list]) => {
                     if (list.length === 0) return null;
                     return (
-                      <optgroup key={reg} label={`Kawasan Hutan ${reg} (${list.length})`} className="bg-slate-900 text-white">
+                      <optgroup key={reg} label={`Peatland Regions ${reg} (${list.length})`} className="bg-slate-900 text-white">
                         {list.map((k) => (
                           <option key={k.id} value={k.id}>
-                            {`[${k.risk_level || 'Rawan'}] ${k.name} - ${k.forest_type}`}
+                            {`[${k.risk_level || 'High Risk'}] ${k.name} - ${k.forest_type}`}
                           </option>
                         ))}
                       </optgroup>
                     );
                   })
                 ) : (
-                  <optgroup label="Kebakaran Hutan &amp; Lahan Gambut" className="bg-slate-900 text-white">
-                    <option value="hutan_sebangau">[Sangat Rawan] TN Sebangau - Hutan Rawa Gambut Tropis</option>
-                    <option value="hutan_eks_plg">[Sangat Rawan] KHG Eks-PLG Sejuta Ha - Gambut Kritis</option>
-                    <option value="live_kalimantan">Karhutla Gambut Kalimantan (NASA FIRMS Live)</option>
+                  <optgroup label="Peatland Wildfire Regions" className="bg-slate-900 text-white">
+                    <option value="hutan_sebangau">[Critical] Sebangau National Park - Tropical Peat Swamp</option>
+                    <option value="hutan_eks_plg">[Critical] Ex-PLG Peatland Region - Critical Peat</option>
+                    <option value="live_kalimantan">Kalimantan Peatland Fires (NASA FIRMS Live)</option>
                   </optgroup>
                 )
               )}
             </select>
           </div>
 
-          {/* Switcher Mode */}
+          {/* Mode Switcher */}
           <div>
             <label className="block text-[11px] font-bold mb-1.5 text-slate-300">
-              Mode Pemodelan:
+              Modeling Mode:
             </label>
-            <div
-              className="grid grid-cols-2 rounded-xl p-1 text-center text-xs bg-black/40 border border-white/10 shadow-xs"
-            >
+            <div className="grid grid-cols-2 rounded-xl p-1 text-center text-xs bg-black/40 border border-white/10 shadow-xs">
               <button
                 type="button"
                 onClick={() => onModeChange("auto")}
@@ -228,7 +223,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                   color: "rgba(255, 255, 255, 0.6)"
                 }}
               >
-                Otomatis (Data Nyata)
+                Auto (Real Data)
               </button>
               <button
                 type="button"
@@ -243,25 +238,23 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                   color: "rgba(255, 255, 255, 0.6)"
                 }}
               >
-                Coba-coba (What-If)
+                What-If Experiment
               </button>
             </div>
           </div>
 
-          {/* Parameter Eksperimen */}
+          {/* Experiment Parameters */}
           {mode === "experiment" && (
-            <div
-              className="rounded-xl p-3 space-y-2.5 text-xs bg-white/5 border border-white/10 backdrop-blur-sm"
-            >
+            <div className="rounded-xl p-3 space-y-2.5 text-xs bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-purple-300 font-bold text-xs">
                 <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Parameter What-If Skenario</span>
+                <span>What-If Scenario Parameters</span>
               </div>
 
               {hazard === "volcano" ? (
                 <div>
                   <label className="text-[10px] font-medium block mb-1 text-slate-300">
-                    Tinggi Kolom (km di atas kawah):
+                    Column Height (km above crater):
                   </label>
                   <input
                     type="number"
@@ -278,7 +271,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
               ) : (
                 <div>
                   <label className="text-[10px] font-medium block mb-1 text-slate-300">
-                    Skala Daya Panas Api (FRP %): {overrides.frp_scale ? overrides.frp_scale * 100 : 100}%
+                    Fire Radiative Power Scale (FRP %): {overrides.frp_scale ? overrides.frp_scale * 100 : 100}%
                   </label>
                   <input
                     type="range"
@@ -303,13 +296,13 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                     }
                     className="rounded accent-purple-400"
                   />
-                  <span>Balikkan Arah Angin Troposfer (180°)</span>
+                  <span>Reverse Tropospheric Wind (180°)</span>
                 </label>
               </div>
 
               <div>
                 <label className="text-[10px] font-medium block mb-1 text-slate-300">
-                  Curah Hujan Pencuci (mm/jam):
+                  Rain Wet Deposition Rate (mm/h):
                 </label>
                 <input
                   type="number"
@@ -326,14 +319,14 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
             </div>
           )}
 
-          {/* Tombol Eksekusi Utama (Get Started Style Aurora Gradient Pill) */}
+          {/* Main Execution Button */}
           <button
             onClick={onRunSimulation}
             disabled={isRunning}
             className="w-full py-3 px-4 aurora-pill aurora-btn font-extrabold text-xs tracking-wide flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-60 text-white shadow-xl active:scale-98"
           >
             <Zap className={`w-4 h-4 text-emerald-400 ${isRunning ? "animate-spin" : ""}`} />
-            <span>{isRunning ? "MENGHITUNG SEBARAN..." : "JALANKAN SIMULASI SEBARAN"}</span>
+            <span>{isRunning ? "CALCULATING PLUME..." : "RUN DISPERSION SIMULATION"}</span>
           </button>
 
           {/* Action Row */}
@@ -344,7 +337,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
               className="py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer aurora-btn text-white shadow-xs"
             >
               <Play className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-              <span>Putar Demo</span>
+              <span>Play Demo</span>
             </button>
             <button
               onClick={() => {
@@ -357,7 +350,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
               className="py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer aurora-btn text-white shadow-xs"
             >
               <Printer className="w-3.5 h-3.5 text-purple-300" />
-              <span>Ekspor Laporan</span>
+              <span>Export Report</span>
             </button>
           </div>
 
@@ -378,4 +371,4 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
   );
 };
 
-
+export default ControllerDock;

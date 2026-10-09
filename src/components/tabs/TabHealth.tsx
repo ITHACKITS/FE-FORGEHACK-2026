@@ -9,72 +9,72 @@ export const TabHealth: React.FC<TabHealthProps> = ({ hazard = "volcano" }) => {
   const isVolcano = hazard === "volcano";
 
   return (
-    <div className="space-y-4 text-xs text-[#140f0e]">
+    <div className="space-y-4 text-xs text-slate-100">
       <div>
-        <span className="inline-block bg-red-100 text-red-800 border border-red-300 font-bold text-[9px] px-1.5 py-0.5 rounded tracking-wider mb-1">
-          PERINGATAN MEDIS KRITIS
+        <span className="inline-block bg-rose-500/20 text-rose-300 border border-rose-400/30 font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
+          CRITICAL MEDICAL ADVISORY
         </span>
-        <h3 className="font-bold text-sm text-red-700">
-          {isVolcano ? "Bahaya Fatal Lensa Kontak (Softlens)" : "Bahaya Partikel Halus PM2.5 Asap Gambut"}
+        <h3 className="font-extrabold text-sm text-rose-400">
+          {isVolcano ? "Fatal Contact Lens Hazard (Softlens)" : "Peatland PM2.5 Fine Particulate Hazard"}
         </h3>
 
-        <div className="bg-red-50 border border-red-300 rounded-lg p-3 text-red-950 mt-2 shadow-xs">
-          <div className="font-bold text-xs text-red-800 mb-1">
-            {isVolcano ? "⚠️ DILARANG KERAS MENGGUNAKAN SOFTLENS!" : "⚠️ ZONA BAHAYA ISPA & KABUT ASAP GABUNGAN"}
+        <div className="bg-rose-950/50 border border-rose-500/40 rounded-2xl p-3.5 text-slate-100 mt-2 shadow-xs">
+          <div className="font-bold text-xs text-rose-300 mb-1">
+            {isVolcano ? "⚠️ STRICTLY FORBIDDEN: DO NOT WEAR CONTACT LENSES!" : "⚠️ ARI & COMPREHENSIVE SMOKE HAZARD ZONE"}
           </div>
-          <p className="leading-relaxed text-[11px] text-slate-800">
+          <p className="leading-relaxed text-[11px] text-slate-300">
             {isVolcano ? (
               <>
-                Abu vulkanik bukanlah debu tanah biasa, melainkan <strong>pecahan kaca silika tajam mikroskopis</strong>. Menggunakan lensa kontak membuat butiran kristal silika terjebak di bawah lensa dan mengikis kornea saat mata berkedip, memicu <strong>abrasi kornea permanen dan risiko kebutaan</strong>.
+                Volcanic ash is not ordinary soil dust, but <strong>microscopic sharp silica glass shards</strong>. Wearing contact lenses traps crystalline silica under the lens, severely scratching the cornea when blinking, causing <strong>permanent corneal abrasion and irreversible blindness risk</strong>.
               </>
             ) : (
               <>
-                Asap kebakaran lahan gambut kaya akan <strong>PM2.5, karbon monoksida (CO), dan senyawa organik volatil (VOC)</strong>. Partikel ini berpenetrasi langsung hingga ke kantung udara terdalam (alveolus), memicu <strong>bronkitis akut, eksaserbasi asma, dan serangan hipoksia</strong> terutama pada balita dan lansia.
+                Peatland wildfire smoke is heavily laden with <strong>PM2.5, carbon monoxide (CO), and volatile organic compounds (VOCs)</strong>. These fine particulates penetrate deep into lung alveoli, triggering <strong>acute bronchitis, severe asthma exacerbations, and hypoxia attacks</strong> especially in toddlers and seniors.
               </>
             )}
           </p>
-          <div className="mt-2 text-red-950 font-medium text-[11px] bg-red-100/90 p-2 rounded border border-red-200">
+          <div className="mt-2.5 text-rose-200 font-medium text-[11px] bg-rose-900/60 p-2.5 rounded-xl border border-rose-500/40">
             {isVolcano ? (
-              <>Mandat: Lepas softlens segera. Gunakan <strong>Kacamata Pelindung (Safety Goggles)</strong> yang menutup rapat sekeliling mata.</>
+              <>Mandate: Remove contact lenses immediately. Wear <strong>Sealed Safety Goggles</strong> that tightly protect the eye perimeter.</>
             ) : (
-              <>Mandat: Tutup ventilasi rumah rapat-rapat. Nyalakan <strong>Air Purifier HEPA filter</strong> dan larang anak-anak beraktivitas di luar ruang.</>
+              <>Mandate: Seal home windows tightly. Run <strong>HEPA filter Air Purifiers</strong> and strictly restrict children from outdoor activities.</>
             )}
           </div>
         </div>
       </div>
 
-      <div className="pt-2 border-t border-black/10">
-        <span className="inline-block bg-sky-100 text-sky-800 border border-sky-300 font-bold text-[9px] px-1.5 py-0.5 rounded tracking-wider mb-1">
-          KOMPARASI RESPIRATOR MEDIS
+      <div className="pt-2 border-t border-white/10">
+        <span className="inline-block bg-sky-500/20 text-sky-300 border border-sky-400/30 font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
+          MEDICAL RESPIRATOR COMPARISON
         </span>
-        <h3 className="font-bold text-xs text-[#140f0e] mb-2">Standar Efektivitas Masker Pernapasan</h3>
+        <h3 className="font-bold text-xs text-white mb-2">Mask Filtration Efficiency Standards</h3>
 
         <div className="space-y-2.5">
-          {/* Masker Kain & Bedah */}
-          <div className="border border-red-200 bg-white rounded-lg p-2.5 shadow-xs">
+          {/* Cloth & Surgical Masks */}
+          <div className="border border-rose-500/30 bg-rose-950/30 rounded-2xl p-3 shadow-xs">
             <div className="flex items-center justify-between mb-1">
-              <strong className="text-red-700 font-semibold text-xs">❌ Masker Bedah &amp; Masker Kain</strong>
-              <span className="px-1.5 py-0.5 rounded text-[9px] bg-red-100 text-red-800 border border-red-300 font-medium">
-                TIDAK EFEKTIF
+              <strong className="text-rose-400 font-semibold text-xs">❌ Surgical &amp; Cloth Masks</strong>
+              <span className="px-2 py-0.5 rounded-full text-[9px] bg-rose-900/80 text-rose-200 border border-rose-500/40 font-bold">
+                INEFFECTIVE
               </span>
             </div>
-            <ul className="list-disc list-inside text-slate-600 text-[10px] space-y-0.5">
-              <li>Pori-pori terlalu lebar (3 – 100 &mu;m). Partikel sub-mikron tetap tembus langsung ke paru-paru.</li>
-              <li>Kebocoran tepi (seal leak) mencapai 30% – 50% di celah hidung dan pipi.</li>
+            <ul className="list-disc list-inside text-slate-300 text-[10px] space-y-0.5">
+              <li>Pores are far too large (3 – 100 &mu;m). Sub-micron aerosols penetrate straight into lungs.</li>
+              <li>Edge seal leaks reach 30% – 50% around nose and cheek gaps.</li>
             </ul>
           </div>
 
-          {/* Masker N95 */}
-          <div className="border border-emerald-300 bg-emerald-50/50 rounded-lg p-2.5 shadow-xs">
+          {/* N95 Respirator */}
+          <div className="border border-emerald-500/40 bg-emerald-950/30 rounded-2xl p-3 shadow-xs">
             <div className="flex items-center justify-between mb-1">
-              <strong className="text-emerald-800 font-semibold text-xs">✅ Masker N95 / KN95 / FFP2</strong>
-              <span className="px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium">
-                STANDAR RESMI WAJIB
+              <strong className="text-emerald-300 font-semibold text-xs">✅ N95 / KN95 / FFP2 Respirator</strong>
+              <span className="px-2 py-0.5 rounded-full text-[9px] bg-emerald-900/80 text-emerald-200 border border-emerald-500/40 font-bold">
+                MANDATORY STANDARD
               </span>
             </div>
-            <ul className="list-disc list-inside text-slate-700 text-[10px] space-y-0.5">
-              <li>Filtrasi partikel mikro &ge; 95% hingga ukuran 0.3 mikron elektrostatik.</li>
-              <li>Segel rapat kontur wajah mencegah kebocoran udara samping tanpa penyaringan.</li>
+            <ul className="list-disc list-inside text-slate-300 text-[10px] space-y-0.5">
+              <li>Electrostatic micro-particle filtration &ge; 95% down to 0.3 micron size.</li>
+              <li>Tight facial contour seal prevents unfiltered side leakage.</li>
             </ul>
           </div>
         </div>
@@ -82,3 +82,5 @@ export const TabHealth: React.FC<TabHealthProps> = ({ hazard = "volcano" }) => {
     </div>
   );
 };
+
+export default TabHealth;

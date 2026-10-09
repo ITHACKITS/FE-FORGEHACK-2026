@@ -16,64 +16,64 @@ export const TabScience: React.FC<TabScienceProps> = ({ validation, hazard: _haz
   const isNotTestable = validation?.status === "not_testable";
 
   return (
-    <div className="space-y-4 text-xs text-[#140f0e]">
+    <div className="space-y-4 text-xs text-slate-100">
       <div>
-        <span className="inline-block bg-sky-100 text-sky-800 border border-sky-300 font-bold text-[9px] px-1.5 py-0.5 rounded tracking-wider mb-1">
-          AUDIT &amp; VALIDASI SPASIAL
+        <span className="inline-block bg-sky-500/20 text-sky-300 border border-sky-400/30 font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
+          AUDIT &amp; SPATIAL VALIDATION
         </span>
-        <h3 className="font-bold text-sm text-[#140f0e]">Evaluasi Akurasi Lapangan</h3>
-        <p className="text-[11px] text-slate-600 mb-2">
-          Verifikasi spasial atmosfer terhadap pengamatan satelit dan laporan ground truth BPBD / VONA.
+        <h3 className="font-extrabold text-sm text-white">Field Accuracy Evaluation</h3>
+        <p className="text-[11px] text-slate-400 mb-2">
+          Atmospheric spatial verification against satellite observations and BPBD / VONA ground truth reports.
         </p>
 
         {isNotTestable ? (
-          <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 text-amber-900 shadow-xs">
-            <div className="font-bold text-xs text-amber-800 mb-1">
-              ⚠️ Status: NOT TESTABLE (Ground Truth Belum Tersedia)
+          <div className="bg-amber-950/40 border border-amber-500/40 rounded-2xl p-3.5 text-amber-200 shadow-xs">
+            <div className="font-bold text-xs text-amber-300 mb-1">
+              ⚠️ Status: NOT TESTABLE (Ground Truth Pending)
             </div>
-            <p className="text-[10px] text-slate-700 leading-relaxed">
+            <p className="text-[10px] text-slate-300 leading-relaxed">
               {validation?.not_testable_reason ||
-                "Validasi numerik belum dapat diklaim karena stasiun pemantau ISPU di pedalaman lahan gambut sangat terbatas. Sesuai Prinsip 6 AGENTS.md, model tidak mengarang nilai akurasi."}
+                "Numerical validation pending because remote peatland ISPU monitoring stations are strictly limited. Adhering to Principle 6, model does not fabricate accuracy values."}
             </p>
           </div>
         ) : (
           <div className="space-y-2.5">
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white border border-black/10 rounded-lg p-2.5 text-center shadow-xs">
-                <span className="text-slate-500 block text-[10px]">Skor Spasial (FSS):</span>
-                <strong className="text-emerald-700 text-base font-mono">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center shadow-xs">
+                <span className="text-slate-400 block text-[10px]">Spatial Score (FSS):</span>
+                <strong className="text-emerald-400 text-base font-mono">
                   {fssScore !== undefined ? `${fssScore} / 1.00` : "0.74 / 1.00"}
                 </strong>
-                <span className="text-[9px] text-slate-500 block">Target Riset: &ge; 0.50</span>
+                <span className="text-[9px] text-slate-400 block">Research Target: &ge; 0.50</span>
               </div>
-              <div className="bg-white border border-black/10 rounded-lg p-2.5 text-center shadow-xs">
-                <span className="text-slate-500 block text-[10px]">Hit Rate Kabupaten:</span>
-                <strong className="text-sky-700 text-base font-mono">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center shadow-xs">
+                <span className="text-slate-400 block text-[10px]">District Hit Rate:</span>
+                <strong className="text-sky-300 text-base font-mono">
                   {hitRate !== undefined ? `${hitRate}%` : "100%"}
                 </strong>
-                <span className="text-[9px] text-slate-500 block">Ground Truth Posko</span>
+                <span className="text-[9px] text-slate-400 block">Post Ground Truth</span>
               </div>
             </div>
 
             {aviation && (
-              <div className="p-2.5 bg-amber-50/70 border border-amber-300 rounded-lg shadow-xs">
+              <div className="p-3 bg-amber-950/30 border border-amber-500/30 rounded-xl shadow-xs">
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <strong className="text-amber-900 font-bold">✈️ {aviation.airport_name}</strong>
-                  <span className="bg-amber-100 border border-amber-300 text-amber-800 text-[9px] px-1.5 py-0.5 rounded font-semibold">
+                  <strong className="text-amber-300 font-bold">✈️ {aviation.airport_name}</strong>
+                  <span className="bg-amber-900/80 border border-amber-500/40 text-amber-200 text-[9px] px-2 py-0.5 rounded-full font-semibold">
                     Prob: {Math.round((aviation.airspace_exposure_probability || 0.68) * 100)}%
                   </span>
                 </div>
-                <div className="text-[10px] text-slate-700 mb-1">{aviation.reported_event}</div>
-                <div className="text-[9px] text-slate-600 italic">
-                  Koridor ketinggian abu: <strong>{aviation.dispersion_altitude_fl || "FL100 - FL250"}</strong>
+                <div className="text-[10px] text-slate-300 mb-1">{aviation.reported_event}</div>
+                <div className="text-[9px] text-slate-400 italic">
+                  Ash Flight Level Corridor: <strong className="text-white">{aviation.dispersion_altitude_fl || "FL100 - FL250"}</strong>
                 </div>
               </div>
             )}
 
             {validation?.reported_districts_evaluated && (
-              <div className="text-[10px] text-slate-600">
-                Kabupaten terverifikasi:{" "}
-                <span className="text-[#140f0e] font-medium">
+              <div className="text-[10px] text-slate-400">
+                Evaluated Districts:{" "}
+                <span className="text-white font-medium">
                   {validation.reported_districts_evaluated.join(", ")}
                 </span>
               </div>
@@ -83,35 +83,35 @@ export const TabScience: React.FC<TabScienceProps> = ({ validation, hazard: _haz
       </div>
 
       {validation?.confidence_caveat && (
-        <div className="p-2.5 bg-white border border-black/10 rounded text-[10px] text-slate-600 shadow-xs">
-          <strong className="text-slate-800 block mb-0.5 font-semibold">Catatan Keyakinan Ansambel:</strong>
+        <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-[10px] text-slate-300 shadow-xs">
+          <strong className="text-white block mb-0.5 font-semibold">Ensemble Confidence Caveat:</strong>
           {validation.confidence_caveat}
         </div>
       )}
 
-      <div className="pt-2 border-t border-black/10">
-        <span className="inline-block bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[9px] px-1.5 py-0.5 rounded tracking-wider mb-1">
-          TRANSPARANSI ASUMSI ILMIAH
+      <div className="pt-2 border-t border-white/10">
+        <span className="inline-block bg-amber-500/20 text-amber-300 border border-amber-400/30 font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
+          SCIENTIFIC ASSUMPTION TRANSPARENCY
         </span>
-        <h3 className="font-bold text-xs text-[#140f0e] mb-2">Katalog Parameter Sains</h3>
+        <h3 className="font-bold text-xs text-white mb-2">Science Parameter Catalog</h3>
 
         <div className="space-y-2">
-          <div className="p-2 bg-white border border-black/10 rounded shadow-xs">
-            <div className="font-bold text-[#140f0e] text-xs">[D01] Laju Emisi Massa Mastin et al. (2009)</div>
-            <p className="text-slate-600 text-[10px] mt-0.5">
-              <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] text-slate-800 font-mono">M = 140.85 &times; H^4.15 kg/s</code> untuk laju pelepasan abu vulkanik di kawah.
+          <div className="p-3 bg-white/5 border border-white/10 rounded-xl shadow-xs">
+            <div className="font-bold text-white text-xs">[D01] Mass Eruption Rate (Mastin et al., 2009)</div>
+            <p className="text-slate-300 text-[10px] mt-0.5">
+              <code className="bg-black/40 px-1.5 py-0.5 rounded text-[10px] text-emerald-300 font-mono">M = 140.85 &times; H^4.15 kg/s</code> for crater volcanic ash discharge rate.
             </p>
           </div>
-          <div className="p-2 bg-white border border-black/10 rounded shadow-xs">
-            <div className="font-bold text-[#140f0e] text-xs">[D02] Emisi Karhutla Wooster et al. (2005)</div>
-            <p className="text-slate-600 text-[10px] mt-0.5">
-              Konversi daya radiasi termal (FRP) dengan faktor emisi biomassa gambut <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] text-slate-800 font-mono">0.37 kg/MJ</code>.
+          <div className="p-3 bg-white/5 border border-white/10 rounded-xl shadow-xs">
+            <div className="font-bold text-white text-xs">[D02] Wildfire Emission (Wooster et al., 2005)</div>
+            <p className="text-slate-300 text-[10px] mt-0.5">
+              Thermal Radiative Power (FRP) conversion with peatland biomass emission factor <code className="bg-black/40 px-1.5 py-0.5 rounded text-[10px] text-purple-300 font-mono">0.37 kg/MJ</code>.
             </p>
           </div>
-          <div className="p-2 bg-white border border-black/10 rounded shadow-xs">
-            <div className="font-bold text-[#140f0e] text-xs">[D03] Presipitasi Wet Deposition</div>
-            <p className="text-slate-600 text-[10px] mt-0.5">
-              Koefisien pencucian partikel akibat hujan &lambda; = a &times; R^b dengan waspada lahar dingin sekunder.
+          <div className="p-3 bg-white/5 border border-white/10 rounded-xl shadow-xs">
+            <div className="font-bold text-white text-xs">[D03] Wet Deposition Scavenging</div>
+            <p className="text-slate-300 text-[10px] mt-0.5">
+              Particle rain scavenging coefficient &lambda; = a &times; R^b with secondary cold lahar flood warnings.
             </p>
           </div>
         </div>
@@ -119,3 +119,5 @@ export const TabScience: React.FC<TabScienceProps> = ({ validation, hazard: _haz
     </div>
   );
 };
+
+export default TabScience;

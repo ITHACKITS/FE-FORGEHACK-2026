@@ -34,11 +34,11 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
         isExpanded ? "bottom-2 sm:bottom-3.5 translate-y-0" : "bottom-0 translate-y-full"
       }`}
     >
-      {/* Tombol Toggle Slide */}
+      {/* Slide Toggle Button */}
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
         className="absolute -top-7 left-1/2 -translate-x-1/2 w-12 h-7 rounded-t-xl flex items-center justify-center cursor-pointer transition-colors shadow-lg aurora-glass-card border-b-0 text-purple-300 hover:text-white"
-        title={isExpanded ? "Sembunyikan Horizon Waktu" : "Tampilkan Horizon Waktu"}
+        title={isExpanded ? "Hide Time Horizon" : "Show Time Horizon"}
       >
         {isExpanded ? (
           <ChevronDown className="w-4 h-4" />
@@ -56,11 +56,11 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
             <button
               onClick={() => setIsPlaying(!isPlaying)}
               className="w-7 h-7 rounded-full flex items-center justify-center transition cursor-pointer aurora-btn shrink-0"
-              title={isPlaying ? "Jeda Animasi" : "Putar Animasi"}
+              title={isPlaying ? "Pause Animation" : "Play Animation"}
             >
               {isPlaying ? <Pause className="w-3.5 h-3.5 text-white" /> : <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />}
             </button>
-            <span className="text-xs font-bold text-white">Horizon Waktu:</span>
+            <span className="text-xs font-bold text-white">Time Horizon:</span>
             <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded-lg bg-black/40 border border-white/15 text-emerald-300 shadow-xs">
               {formatHour(currentHour)}
             </span>
@@ -94,14 +94,16 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
             className="w-full cursor-pointer accent-emerald-400"
           />
           <div className="flex justify-between font-mono text-[9px] mt-0.5 font-bold text-slate-400">
-            <span>00:00 (Awal)</span>
+            <span>00:00 (Start)</span>
             <span>12:00</span>
             <span>24:00</span>
             <span>36:00</span>
-            <span>48:00 (Akhir)</span>
+            <span>48:00 (End)</span>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default TimelinePlayer;

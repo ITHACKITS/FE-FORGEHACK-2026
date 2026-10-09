@@ -51,6 +51,18 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const [streetViewCoords, setStreetViewCoords] = useState<[number, number] | null>(null);
   const [isLocating, setIsLocating] = useState(false);
 
+  // Camera Telemetry State (Matching Google Earth Status Bar in Image 2)
+  const [mapTelemetry, setMapTelemetry] = useState<{ lat: number; lng: number; zoom: number }>({
+    lat: CONFIG.DEFAULT_MAP_VIEW.lat,
+    lng: CONFIG.DEFAULT_MAP_VIEW.lng,
+    zoom: CONFIG.DEFAULT_MAP_VIEW.zoom
+  });
+
+  // Mouse Drag with Shift key for 3D Tilt & Rotate
+  const isDragging3D = useRef(false);
+  const startMousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const startTiltHeading = useRef<{ tilt: number; heading: number }>({ tilt: 0, heading: 0 });
+
   const volcanoesLayerRef = useRef<L.GeoJSON | null>(null);
   const hotspotsLayerRef = useRef<L.GeoJSON | null>(null);
   const schoolsLayerRef = useRef<L.GeoJSON | null>(null);
@@ -107,7 +119,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
   const handleShowMyLocation = () => {
     if (!navigator.geolocation) {
-      alert("Browser Anda tidak mendukung layanan lokasi Geolocation.");
+      alert("Your browser does not support Geolocation services.");
       return;
     }
 
@@ -136,12 +148,12 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           });
 
           userLocationMarkerRef.current = L.marker([latitude, longitude], { icon: pulseIcon }).addTo(mapRef.current);
-          userLocationMarkerRef.current.bindPopup(`<strong class="text-xs">📍 Lokasi Anda Saat Ini</strong>`).openPopup();
+          userLocationMarkerRef.current.bindPopup(`<strong class="text-xs">📍 Your Current Location</strong>`).openPopup();
         }
       },
       (err) => {
         setIsLocating(false);
-        alert(`Gagal mengambil lokasi: ${err.message}`);
+        alert(`Failed to get location: ${err.message}`);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -155,10 +167,11 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
   };
 
+  // Google Earth 3D Mode Toggle
   const handleToggle3D = () => {
     if (!is3DMode) {
       setIs3DMode(true);
-      setTilt(40);
+      setTilt(45);
       setIsTiltPopoverOpen(true);
     } else {
       setIs3DMode(false);
@@ -168,6 +181,35 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
   };
 
+  // Mouse Drag with Shift / Ctrl Key for 3D Earth Orientation
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.shiftKey || e.ctrlKey) {
+      isDragging3D.current = true;
+      startMousePos.current = { x: e.clientX, y: e.clientY };
+      startTiltHeading.current = { tilt, heading };
+      e.preventDefault();
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging3D.current) return;
+
+    const deltaX = e.clientX - startMousePos.current.x;
+    const deltaY = e.clientY - startMousePos.current.y;
+
+    const newTilt = Math.min(60, Math.max(0, startTiltHeading.current.tilt - deltaY * 0.45));
+    const newHeading = (startTiltHeading.current.heading + deltaX * 0.5 + 360) % 360;
+
+    setTilt(Math.round(newTilt));
+    setHeading(Math.round(newHeading));
+    if (newTilt > 0) setIs3DMode(true);
+  };
+
+  const handleMouseUp = () => {
+    isDragging3D.current = false;
+  };
+
+  // Inisialisasi Peta Leaflet
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -183,6 +225,19 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     applyBasemap(map, "satellite");
     mapRef.current = map;
 
+    const updateTelemetry = () => {
+      const center = map.getCenter();
+      setMapTelemetry({
+        lat: center.lat,
+        lng: center.lng,
+        zoom: map.getZoom()
+      });
+    };
+
+    map.on("move", updateTelemetry);
+    map.on("zoomend", updateTelemetry);
+    updateTelemetry();
+
     api.getCoastline()
       .then((geo) => {
         L.geoJSON(geo, {
@@ -197,11 +252,23 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     loadFacilities(map);
 
     return () => {
+      map.off("move", updateTelemetry);
+      map.off("zoomend", updateTelemetry);
       map.remove();
       mapRef.current = null;
     };
   }, []);
 
+  // Invalidate Leaflet tile bounds when 3D mode changes
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.invalidateSize();
+      }, 150);
+    }
+  }, [is3DMode, tilt]);
+
+  // Reset View Handler
   useEffect(() => {
     if (resetViewTrigger > 0 && mapRef.current) {
       mapRef.current.flyTo(
@@ -528,19 +595,68 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
   }, [evacuationRoute]);
 
+  // Calculate 3D perspective scale & translation to fill viewport seamlessly like Google Earth
+  const isTilted = is3DMode || tilt > 0;
+  const perspectiveScale = isTilted ? 1.08 + (tilt / 60) * 1.18 : 1;
+  const perspectiveTranslateY = isTilted ? -(tilt / 60) * 8.5 : 0;
+  const transformString = isTilted
+    ? `perspective(1200px) rotateX(${tilt}deg) rotateZ(${heading}deg) scale(${perspectiveScale}) translateY(${perspectiveTranslateY}%)`
+    : `perspective(1200px) rotateZ(${heading}deg)`;
+
+  // Estimated altitude telemetry formula for Google Earth status bar
+  const cameraAltitudeMeters = Math.round(25000000 / Math.pow(2, mapTelemetry.zoom));
+
   return (
-    <div className="relative w-full h-full overflow-hidden map-viewport-3d bg-[#090c10]">
-      {/* Container Leaflet Canvas dengan 3D CSS Perspective Tilt/Heading Transform */}
+    <div className="relative w-full h-full overflow-hidden map-viewport-3d bg-[#050a14] select-none">
+      {/* 1. Google Earth Sky Atmosphere & Horizon Glow Overlays (Top Haze Layer in Image 2) */}
       <div 
-        ref={mapContainerRef} 
-        className="w-full h-full map-pane-tilt"
-        style={{
-          transform: `perspective(900px) rotateX(${tilt}deg) rotateZ(${heading}deg) scale(${1 + tilt * 0.003})`,
-          transformOrigin: "50% 50%"
-        }}
+        className="earth-sky-atmosphere pointer-events-none"
+        style={{ opacity: tilt > 0 ? Math.min(1, tilt / 30) : 0 }}
+      />
+      <div 
+        className="earth-horizon-fog pointer-events-none"
+        style={{ opacity: tilt > 0 ? Math.min(0.85, tilt / 35) : 0 }}
       />
 
-      {/* 3. Panel Lapisan Spasial Aktif (Kiri Bawah) */}
+      {/* 2. Map Canvas Wrapper Container (Oversized when Tilted to Prevent Edge Cutoffs) */}
+      <div
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        className={`absolute transition-all duration-300 ${
+          isTilted ? "w-[160%] h-[190%] -left-[30%] -top-[45%]" : "w-full h-full left-0 top-0"
+        }`}
+      >
+        <div 
+          ref={mapContainerRef} 
+          className="w-full h-full map-pane-tilt"
+          style={{
+            transform: transformString,
+            transformOrigin: "50% 88%"
+          }}
+        />
+      </div>
+
+      {/* 3. Google Earth 3D Mode Notice Banner (Gambar 2 Bottom Center) */}
+      {isTilted && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[500] hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full aurora-glass-card border border-white/20 text-[11px] text-slate-200 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Google Earth 3D Active &bull; Hold <kbd className="px-1 py-0.5 rounded bg-white/20 font-mono text-[9px] text-white">Shift</kbd> + Drag mouse to tilt & rotate</span>
+        </div>
+      )}
+
+      {/* 4. Telemetry Camera & Coordinates Status Line (Gambar 2 Bottom Right) */}
+      <div className="absolute bottom-2 right-4 z-[500] hidden sm:flex items-center gap-3 text-[10px] font-mono text-slate-300/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
+        <span>Camera: {cameraAltitudeMeters.toLocaleString()} m</span>
+        <span className="text-white/30">&bull;</span>
+        <span>
+          {Math.abs(mapTelemetry.lat).toFixed(4)}°{mapTelemetry.lat >= 0 ? "N" : "S"}{" "}
+          {Math.abs(mapTelemetry.lng).toFixed(4)}°{mapTelemetry.lng >= 0 ? "E" : "W"}
+        </span>
+      </div>
+
+      {/* 5. Panel Lapisan Spasial Aktif (Kiri Bawah) */}
       {!isLayerPanelOpen ? (
         <button
           onClick={() => setIsLayerPanelOpen(true)}
@@ -556,9 +672,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         >
           <div className="flex items-center justify-between border-b pb-2 mb-0.5 border-white/10">
             <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-300">
-              Lapisan Spasial Aktif
+              Active Spatial Layers
             </h3>
-            <button onClick={() => setIsLayerPanelOpen(false)} className="text-slate-400 hover:text-white transition cursor-pointer p-0.5" title="Sembunyikan Panel">
+            <button onClick={() => setIsLayerPanelOpen(false)} className="text-slate-400 hover:text-white transition cursor-pointer p-0.5" title="Hide Panel">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -566,42 +682,42 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showVolcanoes} onChange={(e) => setShowVolcanoes(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/1_normal.png" className="w-4 h-4 object-contain" />
-            <span>Gunungapi PVMBG</span>
+            <span>PVMBG Volcanoes</span>
           </label>
           
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showHotspots} onChange={(e) => setShowHotspots(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/titik_api.png" className="w-4 h-4 object-contain" />
-            <span>Titik Api NASA FIRMS</span>
+            <span>NASA FIRMS Hotspots</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showPlume} onChange={(e) => setShowPlume(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(253, 183, 115, 0.3)", border: "1px dashed #FDB773" }}></div>
-            <span>Peluang Dispersi</span>
+            <span>Dispersion Probability</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showSchools} onChange={(e) => setShowSchools(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/school.png" className="w-4 h-4 object-contain" />
-            <span>Fasilitas Sekolah</span>
+            <span>School Facilities</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showHospitals} onChange={(e) => setShowHospitals(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/hospital.png" className="w-4 h-4 object-contain" />
-            <span>Fasilitas Kesehatan</span>
+            <span>Healthcare Facilities</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showAirports} onChange={(e) => setShowAirports(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/plane.png" className="w-4 h-4 object-contain" />
-            <span>Bandara Udara</span>
+            <span>Airports</span>
           </label>
         </div>
       )}
 
-      {/* Google Earth 3D Tilt & Heading Popover Dialog (Gambar 1) */}
+      {/* Google Earth 3D Tilt & Heading Popover Dialog */}
       {isTiltPopoverOpen && (
         <div
           className="absolute bottom-36 right-4 z-[600] w-80 rounded-2xl p-4 shadow-2xl aurora-glass-card text-slate-100 border border-white/20 animate-in fade-in slide-in-from-bottom-3 duration-200"
@@ -627,14 +743,14 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             </p>
             <div className="flex justify-between pt-1 font-bold text-[10px] text-sky-400">
               <button onClick={() => setIsTiltPopoverOpen(false)} className="hover:underline cursor-pointer">Got it</button>
-              <a href="#" onClick={(e) => { e.preventDefault(); alert("Rotasi 3D memungkinkan eksplorasi sudut elevasi gunung api dan kontur dispersi!"); }} className="hover:underline">Learn more</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); alert("3D rotation allows perspective elevation exploration of volcano terrain and aerosol plume dispersion contours."); }} className="hover:underline">Learn more</a>
             </div>
           </div>
 
           {/* Tilt Slider */}
           <div className="space-y-1 mb-3">
             <div className="flex justify-between text-xs font-semibold text-slate-200">
-              <span>Tilt (Sudut Kemiringan):</span>
+              <span>Tilt Angle:</span>
               <span className="font-mono text-sky-300">{tilt}°</span>
             </div>
             <input
@@ -643,8 +759,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               max={60}
               value={tilt}
               onChange={(e) => {
-                setTilt(Number(e.target.value));
-                if (Number(e.target.value) > 0) setIs3DMode(true);
+                const val = Number(e.target.value);
+                setTilt(val);
+                if (val > 0) setIs3DMode(true);
               }}
               className="w-full accent-sky-400 cursor-pointer"
             />
@@ -653,7 +770,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           {/* Heading Slider */}
           <div className="space-y-1 mb-3">
             <div className="flex justify-between text-xs font-semibold text-slate-200">
-              <span>Heading (Rotasi Kompas):</span>
+              <span>Heading Angle:</span>
               <span className="font-mono text-purple-300">{heading}°</span>
             </div>
             <input
@@ -677,20 +794,20 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset to north</span>
+              <span>Reset to North</span>
             </button>
             <button
               onClick={handleResetIndonesia}
               className="text-[10px] px-2.5 py-1 rounded-full aurora-btn text-white"
             >
-              Reset Peta
+              Reset Map
             </button>
           </div>
         </div>
       )}
 
-      {/* GOOGLE EARTH-STYLE FLOATING SUITE CONTROL DOCK (Kanan Bawah - Gambar 1) */}
-      <div className="absolute bottom-20 right-2 sm:bottom-6 sm:right-4 flex items-center gap-2 z-[500]">
+      {/* GOOGLE EARTH-STYLE FLOATING SUITE CONTROL DOCK (Kanan Bawah - Gambar 1 & 2) */}
+      <div className="absolute bottom-20 right-2 sm:bottom-8 sm:right-4 flex items-center gap-2 z-[500]">
         {/* Container Tombol Bulat Khas Google Earth */}
         <div className="flex items-center gap-1.5 p-1 rounded-full aurora-glass-card shadow-2xl border border-white/20">
           {/* 1. Street View Pegman Icon Button */}
@@ -718,18 +835,18 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             <LocateFixed className={`w-4 h-4 ${isLocating ? "animate-spin" : ""}`} />
           </button>
 
-          {/* 3. 3D Mode Toggle Button */}
+          {/* 3. 2D / 3D Mode Toggle Button (Shows 2D when 3D mode is active to allow 1-click reset, matching Gambar 2) */}
           <button
             type="button"
             onClick={handleToggle3D}
             className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold transition cursor-pointer hover:scale-110 active:scale-95 border shadow-md ${
               is3DMode
-                ? "bg-emerald-500/30 text-emerald-300 border-emerald-400/50 shadow-emerald-500/20"
+                ? "bg-emerald-500/40 text-emerald-300 border-emerald-400/60 shadow-emerald-500/20"
                 : "bg-white/10 text-slate-200 border-white/15 hover:bg-white/20"
             }`}
-            title="Toggle 3D Perspective Mode & Controls"
+            title={is3DMode ? "Switch back to 2D flat view" : "Switch to 3D perspective view"}
           >
-            3D
+            {is3DMode ? "2D" : "3D"}
           </button>
 
           {/* 4. Compass Needle Heading Button */}
