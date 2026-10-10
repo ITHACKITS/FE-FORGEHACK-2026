@@ -228,6 +228,7 @@ export const App: React.FC = () => {
           }}
           resetViewTrigger={resetViewTrigger}
           onToggleLegend={() => setIsLegendOpen((prev) => !prev)}
+          smokeOverrides={mode === "experiment" ? overrides : null}
         />
 
         {/* Floating Active Simulation Pill */}

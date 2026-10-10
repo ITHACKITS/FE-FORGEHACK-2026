@@ -221,6 +221,11 @@
   filter: brightness(0.4) invert(1) contrast(3) hue-rotate(155deg) saturate(0.2) brightness(0.65);
 }
 
+/* GPS location marker pulse ring */
+@keyframes ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
 /* ============================================================
    MEDIA PRINT
    ============================================================ */
@@ -233,4 +238,14 @@
     color: #000 !important;
     overflow: visible !important;
   }
+}
+
+/* Exposure map: faded OSM on cream paper, matching the landing page's illustrated map */
+.leaflet-container.map-paper {
+  /* !important beats the global transparent .leaflet-container rule above */
+  background: linear-gradient(#F4EEDC, #D6E8D8) !important;
+}
+.paper-tiles {
+  filter: grayscale(1) sepia(.25) contrast(.8) brightness(1.12);
+  opacity: .5;
 }

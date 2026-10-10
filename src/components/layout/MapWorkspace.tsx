@@ -1,12 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Plus, Minus, Layers, X, LocateFixed, User, Eye, RotateCcw, Info } from "lucide-react";
+import { Plus, Minus, Layers, X, LocateFixed, User, Eye, RotateCcw, Info, Map as MapIcon, Satellite } from "lucide-react";
 import { CONFIG } from "../../config/constants";
 import { api } from "../../services/api";
 import { formatHour } from "../../utils/formatters";
-import type { HazardType } from "../../types/api";
+import type { HazardType, SimulationOverrides } from "../../types/api";
 import { useLanguage } from "../../context/LanguageContext";
+import { SmokeEngine } from "../../simulation/smokeEngine";
+import { buildSmokeScenario, windFromLabel } from "../../simulation/smokeScenarios";
+import { SmokeLeafletLayer } from "../../simulation/smokeLeafletLayer";
+import { EXPOSURE_TIER_COLORS } from "../../simulation/smokeExposureRenderer";
+import { clearSmoke3D, syncSmoke3D } from "../../simulation/smoke3d";
 
 interface MapWorkspaceProps {
   hazard: HazardType;
@@ -17,6 +22,8 @@ interface MapWorkspaceProps {
   onSelectEvent: (eventId: string, lat: number, lng: number, radiusKm: number) => void;
   resetViewTrigger: number;
   onToggleLegend?: () => void;
+  /** Experiment-mode overrides that reshape the example smoke simulation (null in auto mode). */
+  smokeOverrides?: SimulationOverrides | null;
 }
 
 export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
@@ -27,7 +34,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   evacuationRoute,
   onSelectEvent,
   resetViewTrigger,
-  onToggleLegend: _onToggleLegend
+  onToggleLegend: _onToggleLegend,
+  smokeOverrides = null
 }) => {
   const { lang } = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -46,6 +54,11 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const [showHospitals, setShowHospitals] = useState(true);
   const [showAirports, setShowAirports] = useState(true);
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
+  const [showSmoke, setShowSmoke] = useState(true);
+  // "exposure": landing-style paper map with a smoke-density grid; "satellite": Esri imagery.
+  const [mapStyle, setMapStyle] = useState<"exposure" | "satellite">("exposure");
+  const [smoke3DError, setSmoke3DError] = useState<string | null>(null);
+  const smokeLayerRef = useRef<SmokeLeafletLayer | null>(null);
 
   // Google Earth 3D & Location State
   const [is3DMode, setIs3DMode] = useState(false);
@@ -82,9 +95,21 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const volcanoesDataRef = useRef<any[]>([]);
   const forestsDataRef = useRef<any[]>([]);
 
-  const applyBasemap = (map: L.Map, type: "satellite" | "dark") => {
+  const applyBasemap = (map: L.Map, type: "satellite" | "dark" | "paper") => {
     if (baseTileLayerRef.current) map.removeLayer(baseTileLayerRef.current);
     if (labelsTileLayerRef.current) map.removeLayer(labelsTileLayerRef.current);
+    labelsTileLayerRef.current = null;
+    map.getContainer().classList.toggle("map-paper", type === "paper");
+
+    if (type === "paper") {
+      // Faded OSM under a cream background, like the landing page's illustrated map.
+      baseTileLayerRef.current = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        className: "paper-tiles",
+        maxZoom: 18
+      }).addTo(map);
+      return;
+    }
 
     if (type === "satellite") {
       baseTileLayerRef.current = L.tileLayer(
@@ -126,43 +151,86 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
   const handleShowMyLocation = () => {
     if (!navigator.geolocation) {
-      alert("Your browser does not support Geolocation services.");
+      alert("Geolocation is not supported by your browser.");
       return;
     }
 
     setIsLocating(true);
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        if (!mapRef.current) { setIsLocating(false); return; }
+
+        mapRef.current.flyTo([latitude, longitude], 14, { duration: 1.5 });
+
+        if (userLocationMarkerRef.current) {
+          mapRef.current.removeLayer(userLocationMarkerRef.current);
+        }
+
+        const pulseIcon = L.divIcon({
+          className: "user-gps-marker",
+          html: `
+            <div style="position:relative;display:flex;align-items:center;justify-content:center;width:36px;height:36px">
+              <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:rgba(56,189,248,0.45);animation:ping 1.2s cubic-bezier(0,0,0.2,1) infinite"></span>
+              <span style="position:relative;width:16px;height:16px;border-radius:50%;background:#38bdf8;border:2.5px solid white;box-shadow:0 2px 8px rgba(56,189,248,0.6)"></span>
+            </div>
+          `,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        });
+
+        // Build popup immediately with coords; update with address when ready
+        const marker = L.marker([latitude, longitude], { icon: pulseIcon }).addTo(mapRef.current);
+        userLocationMarkerRef.current = marker;
+        marker.bindPopup(
+          `<div style="font-size:12px;line-height:1.6">
+            <strong>📍 Your Location</strong><br/>
+            <span style="color:#94a3b8">${latitude.toFixed(5)}°, ${longitude.toFixed(5)}°</span><br/>
+            <span style="color:#64748b;font-size:10px">Accuracy: ±${Math.round(accuracy)} m</span>
+          </div>`,
+          { maxWidth: 220 }
+        ).openPopup();
         setIsLocating(false);
-        const { latitude, longitude } = pos.coords;
-        if (mapRef.current) {
-          mapRef.current.flyTo([latitude, longitude], 13, { duration: 1.5 });
 
-          if (userLocationMarkerRef.current) {
-            mapRef.current.removeLayer(userLocationMarkerRef.current);
+        // Reverse-geocode using Google Maps Geocoding API (if key present)
+        const apiKey = CONFIG.GOOGLE_MAPS_API_KEY;
+        if (apiKey) {
+          try {
+            const res = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}&language=id&result_type=sublocality|locality`
+            );
+            const data = await res.json();
+            const address = data?.results?.[0]?.formatted_address;
+            if (address && userLocationMarkerRef.current) {
+              userLocationMarkerRef.current.setPopupContent(
+                `<div style="font-size:12px;line-height:1.6">
+                  <strong>📍 Your Location</strong><br/>
+                  <span style="color:#e2e8f0;font-size:11px">${address}</span><br/>
+                  <span style="color:#64748b;font-size:10px">${latitude.toFixed(5)}°, ${longitude.toFixed(5)}° · ±${Math.round(accuracy)} m</span>
+                </div>`
+              );
+              userLocationMarkerRef.current.openPopup();
+            }
+          } catch {
+            // Geocoding failed silently — coords already shown
           }
-
-          const pulseIcon = L.divIcon({
-            className: "user-gps-marker",
-            html: `
-              <div class="relative flex items-center justify-center w-8 h-8">
-                <span class="absolute inline-flex w-full h-full rounded-full bg-sky-400 opacity-75 animate-ping"></span>
-                <span class="relative inline-flex w-4 h-4 rounded-full bg-sky-500 border-2 border-white shadow-lg"></span>
-              </div>
-            `,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-          });
-
-          userLocationMarkerRef.current = L.marker([latitude, longitude], { icon: pulseIcon }).addTo(mapRef.current);
-          userLocationMarkerRef.current.bindPopup(`<strong class="text-xs">📍 Your Current Location</strong>`).openPopup();
         }
       },
       (err) => {
         setIsLocating(false);
-        alert(`Failed to get location: ${err.message}`);
+        const messages: Record<number, string> = {
+          1: "Location permission was denied. Please allow location access in your browser settings and try again.",
+          2: "Location could not be determined. This can happen indoors or in areas with poor GPS signal. Try moving to an open area.",
+          3: "Location request timed out. Please try again."
+        };
+        alert(messages[err.code] ?? `Location error: ${err.message}`);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 30000   // accept cached position up to 30 s old
+      }
     );
   };
 
@@ -270,6 +338,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
   // Mouse Drag with Shift / Ctrl Key for 3D Earth Orientation
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (!CONFIG.FEATURES.MAP_3D) return;
     if (e.shiftKey || e.ctrlKey) {
       isDragging3D.current = true;
       startMousePos.current = { x: e.clientX, y: e.clientY };
@@ -309,8 +378,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       zoomControl: false
     });
 
-    applyBasemap(map, "satellite");
+    // The basemap itself is applied by the mapStyle effect below.
     mapRef.current = map;
+    smokeLayerRef.current = new SmokeLeafletLayer(map);
 
     const updateTelemetry = () => {
       const center = map.getCenter();
@@ -341,6 +411,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     return () => {
       map.off("move", updateTelemetry);
       map.off("zoomend", updateTelemetry);
+      smokeLayerRef.current?.destroy();
+      smokeLayerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -359,6 +431,58 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [is3DMode]);
+
+  // Example smoke simulation: one engine per hazard/event/overrides combination,
+  // shared by the Leaflet canvas (2D) and the Google Maps 3D slices.
+  const smokeOverridesKey = smokeOverrides ? JSON.stringify(smokeOverrides) : "";
+  const smokeEngine = useMemo(
+    () => new SmokeEngine(buildSmokeScenario(hazard, eventId, smokeOverridesKey ? JSON.parse(smokeOverridesKey) : null)),
+    [hazard, eventId, smokeOverridesKey]
+  );
+  const smokeWind = useMemo(() => {
+    const w = smokeEngine.windAtCenter(currentHour);
+    return { speed: Math.hypot(w.u, w.v), from: windFromLabel(w.u, w.v) };
+  }, [smokeEngine, currentHour]);
+
+  useEffect(() => {
+    smokeLayerRef.current?.setEngine(smokeEngine);
+  }, [smokeEngine]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    applyBasemap(mapRef.current, mapStyle === "exposure" ? "paper" : "satellite");
+    smokeLayerRef.current?.setStyle(mapStyle === "exposure" ? "exposure" : "puffs");
+  }, [mapStyle]);
+
+  // Scale bar for the exposure map: a round distance that spans roughly 70-130 px.
+  const scaleBar = useMemo(() => {
+    const mpp = (40_075_016.686 * Math.cos((mapTelemetry.lat * Math.PI) / 180)) / (256 * Math.pow(2, mapTelemetry.zoom));
+    const steps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
+    const km = steps.filter((k) => (k * 1000) / mpp <= 130).pop() ?? 1;
+    return { km, px: Math.round((km * 1000) / mpp) };
+  }, [mapTelemetry.lat, mapTelemetry.zoom]);
+
+  useEffect(() => {
+    smokeLayerRef.current?.setTargetHour(currentHour);
+  }, [currentHour]);
+
+  useEffect(() => {
+    smokeLayerRef.current?.setVisible(showSmoke && !is3DMode);
+  }, [showSmoke, is3DMode]);
+
+  useEffect(() => {
+    const el = map3DElementRef.current;
+    if (!is3DMode || is3DLoading || !el) return;
+    if (!showSmoke) {
+      clearSmoke3D(el);
+      return;
+    }
+    let cancelled = false;
+    syncSmoke3D(el, smokeEngine, currentHour).then((err) => {
+      if (!cancelled) setSmoke3DError(err);
+    });
+    return () => { cancelled = true; };
+  }, [is3DMode, is3DLoading, showSmoke, smokeEngine, currentHour]);
 
   // Reset View Handler
   useEffect(() => {
@@ -771,6 +895,64 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         </div>
       )}
 
+      {/* 3b. Smoke simulation status: honest labelling for example data */}
+      {showSmoke && (
+        <div
+          className="absolute top-36 sm:top-24 right-2 sm:right-4 z-[900] max-w-[min(340px,calc(100%-1rem))] rounded-2xl px-3 py-2 aurora-glass-card border border-white/15 shadow-2xl text-[11px] leading-snug text-slate-200"
+          role="status"
+        >
+          <div className="flex items-center gap-2 flex-wrap">
+            <strong className="text-white">
+              {lang === "id" ? "Simulasi asap" : "Smoke simulation"} · {smokeEngine.scenario.label}
+            </strong>
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border border-amber-300/60 text-amber-200">
+              {lang === "id" ? "Data contoh" : "Example data"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <span className="font-mono text-[10px] text-slate-300">
+              {lang === "id" ? "Angin" : "Wind"} {smokeWind.speed.toFixed(1)} m/s {lang === "id" ? "dari" : "from"} {smokeWind.from} · T+{currentHour}h
+            </span>
+            {!is3DMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  smokeEngine.advanceTo(currentHour);
+                  // Leave room for the controller dock (left) and the timeline (bottom) on wide screens.
+                  const wide = window.innerWidth >= 640;
+                  mapRef.current?.flyToBounds(smokeEngine.extent(), {
+                    paddingTopLeft: wide ? [360, 110] : [24, 110],
+                    paddingBottomRight: wide ? [60, 150] : [24, 170],
+                    maxZoom: 10,
+                    duration: 1.0
+                  });
+                }}
+                className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+              >
+                {lang === "id" ? "Zoom ke asap" : "Zoom to smoke"}
+              </button>
+            )}
+          </div>
+          {mapStyle === "exposure" && (
+            <div className="flex items-center gap-2.5 flex-wrap mt-1 text-[10px] text-slate-300">
+              {[lang === "id" ? "Ringan" : "Light", lang === "id" ? "Sedang" : "Moderate", lang === "id" ? "Pekat" : "Heavy"].map((label, i) => (
+                <span key={label} className="flex items-center gap-1">
+                  <i className="inline-block w-2.5 h-2.5 rounded-[2px]" style={{ background: EXPOSURE_TIER_COLORS[i] }} />
+                  {label}
+                </span>
+              ))}
+              <span className="text-slate-400">{lang === "id" ? "(kepadatan relatif)" : "(relative density)"}</span>
+            </div>
+          )}
+          {is3DMode && smoke3DError && (
+            <div className="text-[10px] text-rose-300 mt-0.5">{smoke3DError}</div>
+          )}
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            Not an official warning. Follow BMKG, PVMBG and your local BPBD.
+          </div>
+        </div>
+      )}
+
       {/* 4. Telemetry Camera & Coordinates Status Line (Gambar 2 Bottom Right) */}
       <div className="absolute bottom-2 right-4 z-[500] hidden sm:flex items-center gap-3 text-[10px] font-mono text-slate-300/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
         <span>Camera: {cameraAltitudeMeters.toLocaleString()} m</span>
@@ -823,6 +1005,15 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showSmoke} onChange={(e) => setShowSmoke(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
+            <div className="w-4 h-4 rounded-full shrink-0" style={{ background: "radial-gradient(circle, rgba(150,140,130,0.95), rgba(150,140,130,0.15))" }}></div>
+            <span>{lang === "id" ? "Simulasi Asap" : "Smoke Simulation"}</span>
+            <span className="ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border border-amber-300/50 text-amber-200">
+              {lang === "id" ? "Contoh" : "Example"}
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showSchools} onChange={(e) => setShowSchools(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/school.png" className="w-4 h-4 object-contain" />
             <span>{lang === "id" ? "Fasilitas Sekolah" : "School Facilities"}</span>
@@ -872,25 +1063,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             </div>
           </div>
 
-          {/* Tilt Slider */}
-          <div className="space-y-1 mb-3">
-            <div className="flex justify-between text-xs font-semibold text-slate-200">
-              <span>Tilt Angle:</span>
-              <span className="font-mono text-sky-300">{tilt}°</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={60}
-              value={tilt}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                setTilt(val);
-                if (val > 0) setIs3DMode(true);
-              }}
-              className="w-full accent-sky-400 cursor-pointer"
-            />
-          </div>
 
           {/* Heading Slider */}
           <div className="space-y-1 mb-3">
@@ -931,6 +1103,43 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         </div>
       )}
 
+      {/* Map style switch, plus scale bar and north arrow on the exposure map */}
+      <div className="absolute bottom-44 right-2 sm:bottom-[5.5rem] sm:right-4 z-[500] flex flex-col items-end gap-2">
+        {mapStyle === "exposure" && (
+          <div className="hidden sm:flex items-end gap-3 px-2.5 py-1.5 rounded-xl bg-[#F6F0E2]/90 border border-[#16302A]/15 text-[#16302A] font-mono text-[10.5px] shadow-md" aria-hidden="true">
+            <div className="flex flex-col items-start gap-0.5">
+              <span>{scaleBar.km} km</span>
+              <span className="block h-[3px] bg-[#16302A]" style={{ width: scaleBar.px }} />
+            </div>
+            <div className="flex flex-col items-center leading-none">
+              <svg width="12" height="16" viewBox="-6 -12 12 16"><path d="M0 -12L5 4L0 0L-5 4Z" fill="#16302A" /></svg>
+              <span className="mt-0.5">{lang === "id" ? "U" : "N"}</span>
+            </div>
+          </div>
+        )}
+        <div className="flex rounded-full p-0.5 aurora-glass-card border border-white/20 shadow-2xl" role="group" aria-label={lang === "id" ? "Gaya peta" : "Map style"}>
+          {([
+            ["exposure", MapIcon, lang === "id" ? "Paparan" : "Exposure"],
+            ["satellite", Satellite, lang === "id" ? "Satelit" : "Satellite"]
+          ] as const).map(([value, Icon, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={mapStyle === value}
+              aria-label={label}
+              title={label}
+              onClick={() => setMapStyle(value)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-300 ${
+                mapStyle === value ? "bg-emerald-500/40 text-white" : "text-slate-300 hover:bg-white/10"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* GOOGLE EARTH-STYLE FLOATING SUITE CONTROL DOCK (Kanan Bawah - Gambar 1 & 2) */}
       <div className="absolute bottom-20 right-2 sm:bottom-8 sm:right-4 flex items-center gap-2 z-[500]">
         {/* Container Tombol Bulat Khas Google Earth */}
@@ -960,7 +1169,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             <LocateFixed className={`w-4 h-4 ${isLocating ? "animate-spin" : ""}`} />
           </button>
 
-          {/* 3. 2D / 3D Mode Toggle Button (Shows 2D when 3D mode is active to allow 1-click reset, matching Gambar 2) */}
+          {/* 3. 2D / 3D Mode Toggle Button (hidden while CONFIG.FEATURES.MAP_3D is off) */}
+          {CONFIG.FEATURES.MAP_3D && (<>
           <button
             type="button"
             onClick={handleToggle3D}
@@ -994,6 +1204,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               </svg>
             </div>
           </button>
+          </>)}
         </div>
 
         {/* 5. Combined Zoom Control Pill (- / +) */}
