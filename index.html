@@ -1,17 +1,17 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>StandbAI Indonesia | Peringatan dini abu vulkanik dan asap karhutla</title>
-<meta name="description" content="StandbAI memodelkan sebaran abu vulkanik dan asap kebakaran lahan dari data pemantauan resmi, lalu menerjemahkannya menjadi prioritas tindakan untuk sekolah, fasilitas kesehatan, dan warga.">
+<title>StandbAI | Know where the smoke is heading</title>
+<meta name="description" content="StandbAI watches forest fires and volcanoes across Indonesia, then tells people where the smoke and ash will go, so households can prepare before it arrives.">
 <meta name="theme-color" content="#16302A">
-<meta property="og:type" content="website"><meta property="og:locale" content="id_ID"><meta property="og:site_name" content="StandbAI Indonesia">
-<meta property="og:title" content="StandbAI Indonesia"><meta property="og:description" content="Model dispersi ensemble untuk abu vulkanik dan asap karhutla, diterjemahkan menjadi prioritas tindakan di lapangan.">
-<meta property="og:image" content="/Logo.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="StandbAI Indonesia, sistem peringatan aksi dini multi-bahaya">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="StandbAI Indonesia"><meta name="twitter:description" content="Model dispersi ensemble untuk abu vulkanik dan asap karhutla, diterjemahkan menjadi prioritas tindakan di lapangan."><meta name="twitter:image" content="/Logo.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="StandbAI Indonesia">
+<meta property="og:title" content="StandbAI Indonesia"><meta property="og:description" content="Know where the smoke is heading before it reaches home. Wildfire smoke and volcanic ash forecasts for Indonesia.">
+<meta property="og:image" content="/Logo.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="StandbAI, smoke and ash early action for Indonesia">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="StandbAI Indonesia"><meta name="twitter:description" content="Know where the smoke is heading before it reaches home. Wildfire smoke and volcanic ash forecasts for Indonesia."><meta name="twitter:image" content="/Logo.png">
 <link rel="icon" type="image/png" href="/Logo.png">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"StandbAI Indonesia","inLanguage":"id","description":"Model dispersi ensemble untuk abu vulkanik dan asap kebakaran lahan di Indonesia, diterjemahkan menjadi prioritas tindakan bagi sekolah, fasilitas kesehatan, dan warga."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"StandbAI Indonesia","inLanguage":"en","description":"StandbAI forecasts where wildfire smoke and volcanic ash in Indonesia will travel and what households should prepare."}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Manrope:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -81,9 +81,9 @@
   <section id="beranda" class="sec hero" data-label="Beranda" data-scene="sunrise" data-ash=".12" data-smoke="0" data-fire="0" data-lava=".5" data-ext=".35" data-mud="0" data-sl="Fajar">
     <div class="wrap">
       <div class="hero-copy">
-        <p class="kicker" data-i18n="hero_kicker">ForgeHack 2026 · Peringatan aksi dini multi-bahaya</p>
-        <h1><span class="h1a">StandbAI</span><span class="h1b">Indonesia</span></h1>
-        <p class="lede" data-i18n="hero_lede">StandbAI memodelkan sebaran abu vulkanik dan asap kebakaran lahan dari data pemantauan resmi, lalu menerjemahkannya menjadi daftar wilayah, sekolah, dan fasilitas kesehatan yang perlu bersiap lebih dulu.</p>
+        <p class="kicker" data-i18n="hero_kicker">StandbAI · ForgeHacks 2026 · AI + Climate</p>
+        <h1 class="stmt" data-i18n="hero_title">Know where the smoke is heading <em>before it reaches home.</em></h1>
+        <p class="lede" data-i18n="hero_lede">StandbAI watches forest fires and volcanoes across Indonesia, then tells people where the smoke and ash will go.</p>
         <div class="cta">
           <a class="btn fill" href="/loading.html" data-i18n="btn_launch_sim">Jalankan Simulator Web <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
           <a class="btn ghost" href="#coba" data-i18n="btn_mini_sim">Coba Mini Simulasi</a>
@@ -99,19 +99,41 @@
     <p class="cue" aria-hidden="true" data-i18n="cue_scroll">Gulir<i></i></p>
   </section>
 
+  <!-- 00b · smoke travels far (dry season, forest fire) -->
+  <section id="asap" class="sec intro-step" data-norail="1" data-label="Smoke" data-scene="autumn" data-hour="9.6" data-ash=".12" data-smoke="1" data-fire="1" data-lava=".5" data-ext=".35" data-mud="0" data-sl="Kemarau">
+    <div class="wrap">
+      <header class="shead intro-copy" data-speed=".09">
+        <div class="mist" aria-hidden="true"></div>
+        <h2 class="split" data-i18n="intro2_title">A forest fire can send smoke <em>hundreds of kilometers.</em></h2>
+        <p class="lede" data-i18n="intro2_body">So can volcanic ash. Often people only find out once the sky has already changed color.</p>
+      </header>
+    </div>
+  </section>
+
+  <!-- 00c · the warning comes first (air clears, villagers return) -->
+  <section id="siap" class="sec intro-step" data-norail="1" data-label="Ready" data-scene="noon" data-hour="11.2" data-ash=".12" data-smoke="0" data-fire="0" data-lava=".5" data-ext=".35" data-mud="0" data-sl="Siang">
+    <div class="wrap">
+      <header class="shead intro-copy" data-speed=".09">
+        <div class="mist" aria-hidden="true"></div>
+        <h2 class="split" data-i18n="intro3_title">The warning arrives <em>before the smoke does.</em></h2>
+        <p class="lede" data-i18n="intro3_body">StandbAI's AI looks three days ahead, so masks, drinking water, and medicine are ready before they are needed.</p>
+      </header>
+    </div>
+  </section>
+
   <!-- 01 · latar -->
-  <section id="masalah" class="sec" data-norail="1" data-label="Latar" data-scene="sunrise" data-ash=".12" data-smoke="0" data-fire="0" data-lava=".5" data-ext=".35" data-mud="0" data-sl="Fajar">
+  <section id="masalah" class="sec" data-norail="1" data-label="Latar" data-scene="noon" data-hour="11.6" data-ash=".12" data-smoke="0" data-fire="0" data-lava=".5" data-ext=".35" data-mud="0" data-sl="Siang">
     <div class="wrap">
       <header class="shead">
         <div class="mist" aria-hidden="true"></div>
         <span class="num ink-num" aria-hidden="true" data-speed="-.08">01</span>
         <p class="eyebrow" data-i18n="bg_eyebrow">Latar</p>
         <h2 class="split" data-i18n="bg_title">Peringatan sudah terbit, tetapi belum menjawab pertanyaan <em>di lapangan.</em></h2>
-        <p class="lede" data-i18n="bg_lede">Buletin VONA disusun untuk penerbangan. Titik api FIRMS berupa koordinat. Prakiraan angin berbentuk grid. Ketiganya akurat, tetapi tidak satu pun langsung menjawab pertanyaan kepala sekolah, petugas puskesmas, atau warga yang tinggal 20 km dari kawah.</p>
+        <p class="lede" data-i18n="bg_lede">VONA bulletins are written for aviation. FIRMS hotspots are raw coordinates. Wind forecasts are grid vectors. All are accurate, yet none directly answers what a family living 20 km from a crater or next to a peatland needs to know.</p>
       </header>
       <ul class="ask">
-        <li class="leaf rv" data-speed=".03"><p class="who" data-i18n="q_principal_who">Kepala sekolah</p><p class="q" data-i18n="q_principal_q">“Perlukah kegiatan belajar besok dialihkan ke daring?”</p></li>
-        <li class="leaf r rv" data-speed=".1"><p class="who" data-i18n="q_health_who">Petugas kesehatan</p><p class="q" data-i18n="q_health_q">“Rumah sakit rujukan mana yang berada di luar sebaran abu?”</p></li>
+        <li class="leaf rv" data-speed=".03"><p class="who" data-i18n="q_principal_who">Parent</p><p class="q" data-i18n="q_principal_q">“Should the children stay indoors tomorrow?”</p></li>
+        <li class="leaf r rv" data-speed=".1"><p class="who" data-i18n="q_health_who">Village head</p><p class="q" data-i18n="q_health_q">“Which neighbourhoods will the smoke reach first?”</p></li>
         <li class="leaf rv" data-speed=".06"><p class="who" data-i18n="q_citizen_who">Warga</p><p class="q" data-i18n="q_citizen_q">“Kapan masker kain tidak lagi cukup dan respirator N95 diperlukan?”</p></li>
       </ul>
       <ol class="flow rv" aria-label="Alur dari data ke keputusan">
@@ -130,7 +152,7 @@
         <li>
           <span class="f-tag" data-i18n="flow_3_tag">03 · Aksi mitigasi</span>
           <b data-i18n="flow_3_title">Prioritas tindakan</b>
-          <small data-i18n="flow_3_desc">Sekolah · rute rujukan · respirator</small>
+          <small data-i18n="flow_3_desc">Masks · drinking water · medicine</small>
         </li>
       </ol>
     </div>
@@ -195,7 +217,7 @@
         <h2 class="split" data-i18n="sim_title">Coba model ensemble <em>secara langsung</em></h2>
         <p class="lede" data-i18n="sim_lede">Klik peta untuk memindahkan sumber erupsi, atau fokuskan peta lalu gunakan tombol panah. Model menjalankan 24 anggota ensemble dengan gangguan angin acak dan integrasi RK2. Warna pada peta menunjukkan proporsi anggota yang mengendapkan abu di setiap sel: 90%, 50%, dan 5%.</p>
         <div class="sim">
-          <div class="map"><canvas id="sim" role="img" tabindex="0" aria-label="Peta ilustrasi sebaran abu dengan zona 90%, 50%, dan 5%, sekolah, dan rumah sakit. Tombol panah memindahkan sumber abu." aria-describedby="simRead"></canvas></div>
+          <div class="map"><canvas id="sim" role="img" tabindex="0" aria-label="Illustrative ash dispersion map with 90%, 50% and 5% zones and sample villages. Arrow keys move the ash source." aria-describedby="simRead"></canvas></div>
           <div>
             <div class="dayctl">
               <label for="sDir"><span data-i18n="sim_wind_dir">Angin bertiup menuju</span> <output id="sDirO" for="sDir">Timur</output></label>
@@ -222,14 +244,14 @@
           </div>
         </div>
         <div class="decide leaf">
-          <h3 data-i18n="sim_school_pri">Prioritas sekolah</h3>
-          <p class="decide-sub" data-i18n="sim_school_sub">Tiga sekolah dengan peluang paparan tertinggi pada run ini. Kode huruf mengacu pada label di peta.</p>
+          <h3 data-i18n="sim_school_pri">Village Priorities</h3>
+          <p class="decide-sub" data-i18n="sim_school_sub">Three villages with the highest exposure likelihood in this run. Letter codes refer to map markers.</p>
           <div class="dwrap"><table class="dtab" id="simTable">
-            <thead><tr><th scope="col">Sekolah</th><th scope="col">Peluang abu</th><th scope="col">Tiba (median)</th><th scope="col">Tercepat</th><th scope="col">Tindakan</th></tr></thead>
+            <thead><tr><th scope="col">Village</th><th scope="col">Peluang abu</th><th scope="col">Tiba (median)</th><th scope="col">Tercepat</th><th scope="col">Tindakan</th></tr></thead>
             <tbody></tbody>
           </table></div>
         </div>
-        <p class="note" data-i18n="sim_note">Ilustrasi konseptual pada peta skematik 240 km. Lokasi sekolah dan rumah sakit adalah contoh, dan hasilnya bukan peringatan resmi.</p>
+        <p class="note" data-i18n="sim_note">Conceptual illustration on a 240 km schematic grid. Village locations are examples; results are not an official warning.</p>
       </article>
     </div>
   </section>
@@ -250,8 +272,8 @@
       <ol class="vine">
         <li class="leaf rv" data-speed=".04"><span class="k" aria-hidden="true"></span><h3 data-i18n="method_1_title">Akuisisi data</h3><p data-i18n="method_1_desc">Data PVMBG, NASA FIRMS, Open-Meteo, WorldPop, dan OpenStreetMap diperbarui otomatis tanpa input manual.</p></li>
         <li class="leaf r rv" data-speed=".1"><span class="k" aria-hidden="true"></span><h3 data-i18n="method_2_title">Simulasi ensemble</h3><p data-i18n="method_2_desc">Aplikasi menjalankan 15 hingga 51 anggota integrasi Lagrangian RK2 dengan perturbasi angin. Demo di halaman ini memakai 24 anggota.</p></li>
-        <li class="leaf rv" data-speed=".06"><span class="k" aria-hidden="true"></span><h3 data-i18n="method_3_title">Analisis paparan</h3><p data-i18n="method_3_desc">Zona 90%, 50%, dan 5% ditumpangkan pada grid penduduk 100 m serta lokasi sekolah dan fasilitas kesehatan.</p></li>
-        <li class="leaf r rv" data-speed=".12"><span class="k" aria-hidden="true"></span><h3 data-i18n="method_4_title">Rekomendasi tindakan</h3><p data-i18n="method_4_desc">Triase sekolah, rute ke rumah sakit di luar sebaran abu, anjuran respirator N95/KN95, dan prioritas pemadaman klaster titik api.</p></li>
+        <li class="leaf rv" data-speed=".06"><span class="k" aria-hidden="true"></span><h3 data-i18n="method_3_title">Analisis paparan</h3><p data-i18n="method_3_desc">90%, 50%, and 5% contours are overlaid on a population grid to estimate how many people are exposed.</p></li>
+        <li class="leaf r rv" data-speed=".12"><span class="k" aria-hidden="true"></span><h3 data-i18n="method_4_title">Rekomendasi tindakan</h3><p data-i18n="method_4_desc">N95/KN95 respirator guidance, household preparation (masks, water, medicine), and hotspot cluster suppression priority.</p></li>
       </ol>
       </div>
       <p class="rainnote rv" data-i18n="rain_note">Hujan lebat mempercepat pencucian abu dari atmosfer, tetapi endapan di lereng dapat memicu lahar hujan. Untuk kondisi ini sistem menerbitkan peringatan sekunder.</p>
@@ -279,8 +301,8 @@
             <h3 data-i18n="res_erupt_title">Erupsi · kolom abu 5.000 m</h3>
             <dl>
               <dt data-i18n="res_erupt_pop">Penduduk terpapar</dt><dd>18.500–49.000 <small data-i18n="res_erupt_pop_unit">jiwa</small></dd>
-              <dt data-i18n="res_erupt_sch">Sekolah di zona tinggi (≥40%)</dt><dd>6 <small data-i18n="res_erupt_sch_sub">sekolah · abu tiba paling cepat 3,5 jam</small></dd>
-              <dt data-i18n="res_erupt_hosp">Rumah sakit di luar sebaran</dt><dd>2 <small data-i18n="res_erupt_hosp_sub">rute rujukan terdekat 11,4 km</small></dd>
+              <dt data-i18n="res_erupt_sch">Villages in high-risk zone (≥40%)</dt><dd>6 <small data-i18n="res_erupt_sch_sub">villages · earliest ash arrival 3.5 hrs</small></dd>
+              <dt data-i18n="res_erupt_hosp">Time to prepare</dt><dd>2 <small data-i18n="res_erupt_hosp_sub">hours before ash reaches the nearest village</small></dd>
             </dl>
           </div>
           <div class="k rv" data-speed=".09">
@@ -288,7 +310,7 @@
             <dl>
               <dt>Total FRP</dt><dd>1.340 <small>MW</small></dd>
               <dt>PM2.5 terlepas</dt><dd>480 <small>ton per hari</small></dd>
-              <dt data-i18n="res_fire_pop">Penduduk terpapar</dt><dd>14.000–36.500 <small data-i18n="res_fire_pop_sub">jiwa · 11 sekolah</small></dd>
+              <dt data-i18n="res_fire_pop">Penduduk terpapar</dt><dd>14.000–36.500 <small data-i18n="res_fire_pop_sub">people · 11 villages</small></dd>
             </dl>
           </div>
         </div>
@@ -298,7 +320,7 @@
           <div class="rg"><span data-i18n="res_fire_label">Karhutla</span><div class="rtrack"><div class="rbar k" style="left:28%;width:45%"><span>14.000</span><span>36.500</span></div></div></div>
           <div class="axis"><span></span><div class="ticks"><span>0</span><span>10.000</span><span>20.000</span><span>30.000</span><span>40.000</span><span>50.000</span></div></div>
         </div>
-        <p class="note" data-i18n="res_note">Pada contoh ini, pemadaman 5 titik api terbesar menurunkan perkiraan paparan penduduk sebesar 41% dan mengeluarkan 6 sekolah dari zona terdampak.</p>
+        <p class="note" data-i18n="res_note">In this example, extinguishing the top 5 hotspots cuts estimated population exposure by 41% and moves 6 villages out of the danger zone.</p>
       </article>
     </div>
   </section>
@@ -316,7 +338,7 @@
           <li><span class="tag">Data</span><b>PVMBG, Badan Geologi</b><span class="d">Katalog gunung api Tipe A dan buletin VONA</span></li>
           <li><span class="tag">Data</span><b>NASA FIRMS</b><span class="d">Titik panas VIIRS dari Suomi-NPP dan NOAA-20</span></li>
           <li><span class="tag">Data</span><b>Open-Meteo</b><span class="d">Vektor angin dan curah hujan</span></li>
-          <li><span class="tag">Data</span><b>WorldPop dan OpenStreetMap</b><span class="d">Grid penduduk 100 m, sekolah, dan fasilitas kesehatan</span></li>
+          <li><span class="tag">Data</span><b>WorldPop dan OpenStreetMap</b><span class="d">Grid penduduk dan peta dasar</span></li>
           <li class="m"><span class="tag">Metode</span><b>Mastin dkk. (2009)</b><span class="d">M = 140,85 × H<sup>4,15</sup>, dengan M dalam kg/detik dan H dalam km</span></li>
           <li class="m"><span class="tag">Metode</span><b>Wooster dkk. (2005)</b><span class="d">Estimasi biomassa terbakar dari Fire Radiative Power</span></li>
         </ul>
@@ -336,7 +358,7 @@
         <h2 class="split" data-i18n="aud_title">Untuk mereka yang menyiapkan keputusan <em>sebelum status naik</em></h2>
         <ul class="aud">
           <li class="leaf sm rv"><b data-i18n="aud_1_title">BPBD dan relawan</b><span data-i18n="aud_1_desc">Memetakan wilayah terdampak dan menyusun prioritas sebelum status gunung api berubah.</span></li>
-          <li class="leaf sm r rv"><b data-i18n="aud_2_title">Sekolah dan fasilitas kesehatan</b><span data-i18n="aud_2_desc">Memperkirakan waktu kedatangan abu dan memilih rute rujukan yang aman.</span></li>
+          <li class="leaf sm r rv"><b data-i18n="aud_2_title">Families & Village Leaders</b><span data-i18n="aud_2_desc">Know when smoke or ash will arrive, then get masks, drinking water, and medicine ready early.</span></li>
           <li class="leaf sm rv"><b data-i18n="aud_3_title">Peneliti dan pelajar</b><span data-i18n="aud_3_desc">Menelusuri metode, sumber data, dan ketidakpastian di balik setiap angka.</span></li>
         </ul>
         <div class="cta">

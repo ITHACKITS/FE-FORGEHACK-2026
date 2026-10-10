@@ -10,8 +10,10 @@ import type {
   SimulationPayload,
   SimulationResponse,
   ImpactResponse,
-  FacilitiesImpactResponse,
-  ValidationResponse
+  ValidationResponse,
+  WindFieldResponse,
+  HeatmapResponse,
+  SmokePathsResponse
 } from "../types/api";
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -39,6 +41,10 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   getHealth: () => request<HealthResponse>("/health"),
+  getWind: (level: "10m" | "850hPa", hours: number) =>
+    request<WindFieldResponse>(`/layers/wind?level=${level}&hours=${hours}`),
+  getHeatmap: (days: number) => request<HeatmapResponse>(`/layers/heatmap?kind=fires&days=${days}`),
+  getSmokePaths: (hours: number) => request<SmokePathsResponse>(`/layers/smoke-paths?hours=${hours}`),
   getSummaryKpi: () => request<SummaryKpiResponse>("/layers/summary-kpi"),
   syncLive: () => request<LiveSyncResponse>("/layers/sync-live", { method: "POST" }),
 
@@ -54,10 +60,8 @@ export const api = {
     }),
 
   getImpact: (runId: string) => request<ImpactResponse>(`/runs/${runId}/impact`),
-  getFacilitiesImpacted: (runId: string) => request<FacilitiesImpactResponse>(`/runs/${runId}/facilities-impacted`),
   getValidation: (eventId: string) => request<ValidationResponse>(`/validation/${eventId}`),
   getTiersAtHour: (runId: string, hour: number) => request<any>(`/runs/${runId}/tiers?t=${hour}`),
-  getHealthGuidance: (runId: string) => request<any>(`/runs/${runId}/health-guidance`),
   getEvents: () => request<any>("/events"),
   getNationalForests: () => request<any>("/layers/forests"),
   playDemo: (eventId: string) => request<any>(`/demo/play/${eventId}`)

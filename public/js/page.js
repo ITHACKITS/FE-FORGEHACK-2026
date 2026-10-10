@@ -13,7 +13,8 @@
   var US=window.US={reduce:reduce,T:T,HOUR:HOUR,anchors:{},frame:null,vel:0,prog:0,dirty:true,snap:false,hour:T.hour};
 
   /* ---------- sistem 2 bahasa (ID / EN) ---------- */
-  var currentLang = localStorage.getItem('standbai_lang') || 'id';
+  var currentLang = 'en';
+  try { currentLang = localStorage.getItem('standbai_lang') || 'en'; } catch { /* storage blocked */ }
   var SCENE_NAMES = {
     id: { sunrise: 'Fajar', noon: 'Siang', autumn: 'Kemarau', sunset: 'Senja', night: 'Malam', rain: 'Hujan', storm: 'Badai', snow: 'Salju', sakura: 'Mekar' },
     en: { sunrise: 'Dawn', noon: 'Noon', autumn: 'Dry Season', sunset: 'Dusk', night: 'Night', rain: 'Rain', storm: 'Storm', snow: 'Snow', sakura: 'Bloom' }
@@ -27,8 +28,13 @@
       nav_outputs: "Keluaran",
       nav_refs: "Rujukan",
       nav_cta: "Jalankan Simulator Web",
-      hero_kicker: "ForgeHack 2026 · Peringatan aksi dini multi-bahaya",
-      hero_lede: "StandbAI memodelkan sebaran abu vulkanik dan asap kebakaran lahan dari data pemantauan resmi, lalu menerjemahkannya menjadi daftar wilayah, sekolah, dan fasilitas kesehatan yang perlu bersiap lebih dulu.",
+      hero_kicker: "StandbAI · ForgeHacks 2026 · AI + Iklim",
+      hero_title: "Ketahui arah asap <em>sebelum sampai ke rumah.</em>",
+      hero_lede: "StandbAI memantau kebakaran hutan dan gunung api di seluruh Indonesia, lalu memberi tahu ke mana asap dan abu akan bergerak.",
+      intro2_title: "Kebakaran hutan bisa membawa asap <em>ratusan kilometer.</em>",
+      intro2_body: "Begitu pula abu vulkanik. Sering kali warga baru tahu setelah warna langit berubah.",
+      intro3_title: "Peringatan datang <em>sebelum asapnya.</em>",
+      intro3_body: "AI StandbAI melihat tiga hari ke depan, sehingga masker, air minum, dan obat sudah siap sebelum dibutuhkan.",
       btn_launch_sim: "Jalankan Simulator Web",
       btn_mini_sim: "Coba Mini Simulasi",
       fact_volcano: "gunung api Tipe A dalam katalog PVMBG",
@@ -37,11 +43,11 @@
       fact_range: "rentang ketidakpastian pada setiap estimasi dampak",
       bg_eyebrow: "Latar",
       bg_title: "Peringatan sudah terbit, tetapi belum menjawab pertanyaan <em>di lapangan.</em>",
-      bg_lede: "Buletin VONA disusun untuk penerbangan. Titik api FIRMS berupa koordinat. Prakiraan angin berbentuk grid. Ketiganya akurat, tetapi tidak satu pun langsung menjawab pertanyaan kepala sekolah, petugas puskesmas, atau warga yang tinggal 20 km dari kawah.",
-      q_principal_who: "Kepala sekolah",
-      q_principal_q: "“Perlukah kegiatan belajar besok dialihkan ke daring?”",
-      q_health_who: "Petugas kesehatan",
-      q_health_q: "“Rumah sakit rujukan mana yang berada di luar sebaran abu?”",
+      bg_lede: "Buletin VONA disusun untuk penerbangan. Titik api FIRMS berupa koordinat. Prakiraan angin berbentuk grid. Ketiganya akurat, tetapi tidak satu pun langsung menjawab pertanyaan keluarga yang tinggal 20 km dari kawah atau di tepi lahan gambut.",
+      q_principal_who: "Orang tua",
+      q_principal_q: "“Perlukah anak-anak tetap di dalam rumah besok?”",
+      q_health_who: "Kepala desa",
+      q_health_q: "“Kampung mana yang akan lebih dulu terkena asap?”",
       q_citizen_who: "Warga",
       q_citizen_q: "“Kapan masker kain tidak lagi cukup dan respirator N95 diperlukan?”",
       flow_1_tag: "01 · Masukan data",
@@ -52,7 +58,7 @@
       flow_2_desc: "Integrasi Lagrangian · StandbAI",
       flow_3_tag: "03 · Aksi mitigasi",
       flow_3_title: "Prioritas tindakan",
-      flow_3_desc: "Sekolah · rute rujukan · respirator",
+      flow_3_desc: "Masker · air minum · obat-obatan",
       vol_eyebrow: "Abu vulkanik",
       vol_title: "Dari tinggi kolom abu ke <em>laju erupsi massa</em>",
       vol_desc: "Tinggi kolom pada buletin VONA dikonversi menjadi laju erupsi massa dengan relasi empiris Mastin dkk. (2009). Massa tersebut kemudian dibagi ke ribuan paket partikel yang diadveksi oleh medan angin.",
@@ -76,9 +82,9 @@
       sim_seed_btn: "Ulangi ensemble",
       sim_share_btn: "Salin tautan skenario",
       sim_full_btn: "Buka Simulator Web Full (3D Earth)",
-      sim_school_pri: "Prioritas sekolah",
-      sim_school_sub: "Tiga sekolah dengan peluang paparan tertinggi pada run ini. Kode huruf mengacu pada label di peta.",
-      sim_note: "Ilustrasi konseptual pada peta skematik 240 km. Lokasi sekolah dan rumah sakit adalah contoh, dan hasilnya bukan peringatan resmi.",
+      sim_school_pri: "Prioritas desa",
+      sim_school_sub: "Tiga desa dengan peluang paparan tertinggi pada run ini. Kode huruf mengacu pada label di peta.",
+      sim_note: "Ilustrasi konseptual pada peta skematik 240 km. Lokasi desa adalah contoh, dan hasilnya bukan peringatan resmi.",
       method_eyebrow: "Metode",
       method_title: "Empat tahap dari data terbuka <em>ke rekomendasi</em>",
       method_lede: "Seluruh tahapan berjalan otomatis, sehingga pengguna di daerah tidak perlu mengolah data mentah sendiri.",
@@ -87,9 +93,9 @@
       method_2_title: "Simulasi ensemble",
       method_2_desc: "Aplikasi menjalankan 15 hingga 51 anggota integrasi Lagrangian RK2 dengan perturbasi angin. Demo di halaman ini memakai 24 anggota.",
       method_3_title: "Analisis paparan",
-      method_3_desc: "Zona 90%, 50%, dan 5% ditumpangkan pada grid penduduk 100 m serta lokasi sekolah dan fasilitas kesehatan.",
+      method_3_desc: "Zona 90%, 50%, dan 5% ditumpangkan pada grid penduduk untuk memperkirakan berapa banyak orang yang terpapar.",
       method_4_title: "Rekomendasi tindakan",
-      method_4_desc: "Triase sekolah, rute ke rumah sakit di luar sebaran abu, anjuran respirator N95/KN95, dan prioritas pemadaman klaster titik api.",
+      method_4_desc: "Anjuran respirator N95/KN95, persiapan rumah tangga (masker, air minum, obat), dan prioritas pemadaman klaster titik api.",
       rain_note: "Hujan lebat mempercepat pencucian abu dari atmosfer, tetapi endapan di lereng dapat memicu lahar hujan. Untuk kondisi ini sistem menerbitkan peringatan sekunder.",
       mode_auto_b: "Otomatis",
       mode_auto_s: "Sumber dan parameter diambil dari data resmi terbaru.",
@@ -104,17 +110,17 @@
       res_erupt_title: "Erupsi · kolom abu 5.000 m",
       res_erupt_pop: "Penduduk terpapar",
       res_erupt_pop_unit: "jiwa",
-      res_erupt_sch: "Sekolah di zona tinggi (≥40%)",
-      res_erupt_sch_sub: "sekolah · abu tiba paling cepat 3,5 jam",
-      res_erupt_hosp: "Rumah sakit di luar sebaran",
-      res_erupt_hosp_sub: "rute rujukan terdekat 11,4 km",
+      res_erupt_sch: "Desa di zona tinggi (≥40%)",
+      res_erupt_sch_sub: "desa · abu tiba paling cepat 3,5 jam",
+      res_erupt_hosp: "Waktu persiapan",
+      res_erupt_hosp_sub: "jam sebelum abu tiba di desa terdekat",
       res_fire_title: "Karhutla gambut · 42 titik api",
       res_fire_pop: "Penduduk terpapar",
-      res_fire_pop_sub: "jiwa · 11 sekolah",
+      res_fire_pop_sub: "jiwa · 11 desa",
       res_range_title: "Rentang penduduk terpapar (jiwa)",
       res_erupt_label: "Erupsi",
       res_fire_label: "Karhutla",
-      res_note: "Pada contoh ini, pemadaman 5 titik api terbesar menurunkan perkiraan paparan penduduk sebesar 41% dan mengeluarkan 6 sekolah dari zona terdampak.",
+      res_note: "Pada contoh ini, pemadaman 5 titik api terbesar menurunkan perkiraan paparan penduduk sebesar 41% dan mengeluarkan 6 desa dari zona terdampak.",
       ref_eyebrow: "Rujukan",
       ref_title: "Data dan metode <em>yang digunakan</em>",
       ref_notice: "Pernyataan. StandbAI adalah alat estimasi ilmiah untuk pembelajaran, perencanaan kontinjensi, dan kesiapsiagaan. Keluarannya bukan peringatan resmi. Status kedaruratan dan perintah evakuasi mengikuti PVMBG Badan Geologi, BMKG, BNPB, dan BPBD setempat.",
@@ -122,8 +128,8 @@
       aud_title: "Untuk mereka yang menyiapkan keputusan <em>sebelum status naik</em>",
       aud_1_title: "BPBD dan relawan",
       aud_1_desc: "Memetakan wilayah terdampak dan menyusun prioritas sebelum status gunung api berubah.",
-      aud_2_title: "Sekolah dan fasilitas kesehatan",
-      aud_2_desc: "Memperkirakan waktu kedatangan abu dan memilih rute rujukan yang aman.",
+      aud_2_title: "Keluarga dan perangkat desa",
+      aud_2_desc: "Mengetahui kapan asap atau abu tiba, lalu menyiapkan masker, air minum, dan obat lebih awal.",
       aud_3_title: "Peneliti dan pelajar",
       aud_3_desc: "Menelusuri metode, sumber data, dan ketidakpastian di balik setiap angka.",
       aud_btn_app: "Buka Simulator Web StandbAI",
@@ -163,8 +169,13 @@
       nav_outputs: "Outputs",
       nav_refs: "References",
       nav_cta: "Launch Web Simulator",
-      hero_kicker: "ForgeHack 2026 · Multi-hazard early action warning",
-      hero_lede: "StandbAI models volcanic ash dispersion and peatland wildfire smoke from official monitoring data, translating predictions into prioritized action lists for communities, schools, and hospitals.",
+      hero_kicker: "StandbAI · ForgeHacks 2026 · AI + Climate",
+      hero_title: "Know where the smoke is heading <em>before it reaches home.</em>",
+      hero_lede: "StandbAI watches forest fires and volcanoes across Indonesia, then tells people where the smoke and ash will go.",
+      intro2_title: "A forest fire can send smoke <em>hundreds of kilometers.</em>",
+      intro2_body: "So can volcanic ash. Often people only find out once the sky has already changed color.",
+      intro3_title: "The warning arrives <em>before the smoke does.</em>",
+      intro3_body: "StandbAI's AI looks three days ahead, so masks, drinking water, and medicine are ready before they are needed.",
       btn_launch_sim: "Launch Web Simulator",
       btn_mini_sim: "Try Mini Simulation",
       fact_volcano: "Type A active volcanoes in PVMBG catalog",
@@ -173,11 +184,11 @@
       fact_range: "uncertainty interval across all impact metrics",
       bg_eyebrow: "Context",
       bg_title: "Alerts are published, but ground-level questions remain <em>unanswered.</em>",
-      bg_lede: "VONA bulletins are written for aviation. FIRMS hotspots are raw coordinates. Wind forecasts are grid vectors. All are accurate, yet none directly answer what school principals, clinic nurses, or residents living 20 km away must do.",
-      q_principal_who: "School Principal",
-      q_principal_q: "“Should tomorrow's classes switch to online distance learning?”",
-      q_health_who: "Healthcare Officer",
-      q_health_q: "“Which referral hospital is safe outside the ash plume dispersion?”",
+      bg_lede: "VONA bulletins are written for aviation. FIRMS hotspots are raw coordinates. Wind forecasts are grid vectors. All are accurate, yet none directly answers what a family living 20 km from a crater or next to a peatland needs to know.",
+      q_principal_who: "Parent",
+      q_principal_q: "“Should the children stay indoors tomorrow?”",
+      q_health_who: "Village head",
+      q_health_q: "“Which neighbourhoods will the smoke reach first?”",
       q_citizen_who: "Resident",
       q_citizen_q: "“When is a cloth mask insufficient and an N95 respirator mandatory?”",
       flow_1_tag: "01 · Data Ingestion",
@@ -188,7 +199,7 @@
       flow_2_desc: "Lagrangian Integration · StandbAI",
       flow_3_tag: "03 · Early Action",
       flow_3_title: "Action Priorities",
-      flow_3_desc: "Schools · Safe Referral · Respirators",
+      flow_3_desc: "Masks · drinking water · medicine",
       vol_eyebrow: "Volcanic Ash",
       vol_title: "From plume height to <em>mass eruption rate</em>",
       vol_desc: "Plume height in VONA bulletins is converted into mass eruption rate using empirical relations (Mastin et al., 2009). The erupted mass is then discretized into thousands of particle parcels advected by wind fields.",
@@ -212,9 +223,9 @@
       sim_seed_btn: "Rerun ensemble",
       sim_share_btn: "Copy scenario link",
       sim_full_btn: "Open Full Web Simulator (3D Earth)",
-      sim_school_pri: "School Priorities",
-      sim_school_sub: "Three schools with highest exposure likelihood in this run. Letter codes refer to map markers.",
-      sim_note: "Conceptual illustration on a 240 km schematic grid. School and hospital coordinates are examples; results do not constitute an official warning.",
+      sim_school_pri: "Village Priorities",
+      sim_school_sub: "Three villages with the highest exposure likelihood in this run. Letter codes refer to map markers.",
+      sim_note: "Conceptual illustration on a 240 km schematic grid. Village locations are examples; results are not an official warning.",
       method_eyebrow: "Methods",
       method_title: "Four stages from open data <em>to early action</em>",
       method_lede: "All stages run automatically, eliminating the need for local emergency teams to process raw data.",
@@ -223,9 +234,9 @@
       method_2_title: "Ensemble Simulation",
       method_2_desc: "The system runs 15 to 51 RK2 Lagrangian integration members with stochastic wind perturbations. This demo uses 24 members.",
       method_3_title: "Exposure Analysis",
-      method_3_desc: "90%, 50%, and 5% impact contours are overlaid on 100 m population grids, schools, and healthcare facilities.",
+      method_3_desc: "90%, 50%, and 5% contours are overlaid on a population grid to estimate how many people are exposed.",
       method_4_title: "Mitigation Action Advisory",
-      method_4_desc: "School triage, safe hospital evacuation corridors, N95/KN95 respirator guidance, and hotspot cluster suppression priority.",
+      method_4_desc: "N95/KN95 respirator guidance, household preparation (masks, water, medicine), and hotspot cluster suppression priority.",
       rain_note: "Heavy precipitation accelerates atmospheric ash scavenging, but slope deposits can trigger secondary rain lahars. The system issues secondary warnings for such conditions.",
       mode_auto_b: "Automated",
       mode_auto_s: "Sources and parameters ingested directly from latest official feeds.",
@@ -240,17 +251,17 @@
       res_erupt_title: "Eruption · 5,000 m ash column",
       res_erupt_pop: "Exposed population",
       res_erupt_pop_unit: "people",
-      res_erupt_sch: "Schools in high-risk zone (≥40%)",
-      res_erupt_sch_sub: "schools · earliest ash arrival 3.5 hrs",
-      res_erupt_hosp: "Hospitals outside plume",
-      res_erupt_hosp_sub: "nearest safe referral route 11.4 km",
+      res_erupt_sch: "Villages in high-risk zone (≥40%)",
+      res_erupt_sch_sub: "villages · earliest ash arrival 3.5 hrs",
+      res_erupt_hosp: "Time to prepare",
+      res_erupt_hosp_sub: "hours before ash reaches the nearest village",
       res_fire_title: "Peatland wildfire · 42 hotspots",
       res_fire_pop: "Exposed population",
-      res_fire_pop_sub: "people · 11 schools",
+      res_fire_pop_sub: "people · 11 villages",
       res_range_title: "Exposed population range (people)",
       res_erupt_label: "Eruption",
       res_fire_label: "Wildfire",
-      res_note: "In this example, extinguishing the top 5 hotspots cuts estimated population exposure by 41% and moves 6 schools out of the danger zone.",
+      res_note: "In this example, extinguishing the top 5 hotspots cuts estimated population exposure by 41% and moves 6 villages out of the danger zone.",
       ref_eyebrow: "References",
       ref_title: "Data sources and <em>scientific methodology</em>",
       ref_notice: "Disclaimer: StandbAI is a scientific estimation platform for contingency planning and preparedness. Outputs are advisory and not official warnings. Refer to PVMBG, BMKG, BNPB, and regional BPBD for official emergency declarations.",
@@ -258,8 +269,8 @@
       aud_title: "For decision makers acting <em>before alert levels escalate</em>",
       aud_1_title: "Disaster Agencies & Volunteers",
       aud_1_desc: "Map affected sectors and prioritize early actions before alert levels escalate.",
-      aud_2_title: "Schools & Healthcare",
-      aud_2_desc: "Forecast ash arrival times and determine safe patient evacuation corridors.",
+      aud_2_title: "Families & Village Leaders",
+      aud_2_desc: "Know when smoke or ash will arrive, then get masks, drinking water, and medicine ready early.",
       aud_3_title: "Researchers & Students",
       aud_3_desc: "Inspect numerical methods, open data feeds, and uncertainty intervals behind every metric.",
       aud_btn_app: "Open StandbAI Web Simulator",
@@ -323,12 +334,12 @@
   function renderFire(){
     if(currentLang === 'en'){
       fireOut.innerHTML = T.out
-        ? 'Estimated population exposure drops by <strong>41%</strong>, and <strong>6 schools</strong> exit the danger zone.'
+        ? 'Estimated population exposure drops by <strong>41%</strong>, and <strong>6 villages</strong> exit the danger zone.'
         : '<strong>42 hotspots</strong> with <strong>1,340 MW</strong> total FRP release approx. <strong>480 tons</strong> PM2.5 daily.';
       if(fireBtn) fireBtn.textContent = T.out ? 'Relight fire hotspots' : 'Extinguish top 5 fire hotspots';
     } else {
       fireOut.innerHTML = T.out
-        ?'Perkiraan paparan penduduk turun <strong>41%</strong>, dan <strong>6 sekolah</strong> keluar dari zona terdampak.'
+        ?'Perkiraan paparan penduduk turun <strong>41%</strong>, dan <strong>6 desa</strong> keluar dari zona terdampak.'
         :'<strong>42 titik api</strong> dengan total FRP <strong>1.340 MW</strong> melepas sekitar <strong>480 ton</strong> PM2.5 per hari.';
       if(fireBtn) fireBtn.textContent = T.out ? 'Nyalakan kembali titik api' : 'Padamkan 5 titik api terbesar';
     }
@@ -339,7 +350,8 @@
   var langBtn = $('#langBtn'), langBtnText = $('#langBtnText');
   function applyLang(l){
     currentLang = l;
-    localStorage.setItem('standbai_lang', l);
+    root.lang = l;
+    try { localStorage.setItem('standbai_lang', l); } catch { /* storage blocked */ }
     if(langBtnText) langBtnText.textContent = l === 'id' ? 'EN' : 'ID';
     if(langBtn) langBtn.title = l === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia';
     var dict = DICT[l] || DICT.id;
@@ -505,7 +517,8 @@
     for(i=0;i<n;i++){if(centers[i]<=mid)idx=i;}
     var j=Math.min(n-1,idx+1),f=j===idx?0:Math.max(0,Math.min(1,(mid-centers[idx])/(centers[j]-centers[idx])));
     var e=f*f*(3-2*f),A=items[idx].dataset,B=items[j].dataset;
-    T.hour=HOUR[A.scene]+(HOUR[B.scene]-HOUR[A.scene])*e;
+    var hA=A.hour!==undefined?+A.hour:HOUR[A.scene],hB=B.hour!==undefined?+B.hour:HOUR[B.scene];
+    T.hour=hA+(hB-hA)*e;
     WEATHER.forEach(function(k){T[k]=(A.scene===k?1:0)*(1-e)+(B.scene===k?1:0)*e;});
     HAZ.forEach(function(k){T[k]=+A[k]+((+B[k])-(+A[k]))*e;});
     T.scene=e<.5?A.scene:B.scene;

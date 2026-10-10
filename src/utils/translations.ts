@@ -37,15 +37,11 @@ export const translations = {
     myLocation: "My Location",
     streetView: "Street View",
     layerTiers: "Ash/Smoke Tiers",
-    layerSchools: "Schools",
-    layerHospitals: "Hospitals",
     layerHotspots: "Hotspots",
     
     // Analytics Drawer Tabs
     tabImpact: "Impact Projection",
-    tabSchools: "School Triage",
-    tabHealth: "Healthcare & Routes",
-    tabEvac: "Evacuation & Mask",
+    tabHealth: "Health & Masks",
     tabScience: "Model Physics",
     
     // Drawer Content
@@ -53,8 +49,6 @@ export const translations = {
     medAshZone: "50% Median Dispersion Zone",
     lowAshZone: "5% Max Reach Zone",
     exposedPop: "Exposed Population (P5–P95)",
-    schoolsImpacted: "Schools in Danger Zone",
-    hospitalsSafe: "Safe Referral Hospitals",
     actionRecommended: "Recommended Mitigation Action",
 
     // Common
@@ -98,15 +92,11 @@ export const translations = {
     myLocation: "Lokasi Saya",
     streetView: "Street View",
     layerTiers: "Zona Sebaran",
-    layerSchools: "Sekolah",
-    layerHospitals: "Rumah Sakit",
     layerHotspots: "Titik Panas",
     
     // Analytics Drawer Tabs
     tabImpact: "Proyeksi Dampak",
-    tabSchools: "Prioritas Sekolah",
-    tabHealth: "Kesehatan & Rujukan",
-    tabEvac: "Evakuasi & Masker",
+    tabHealth: "Kesehatan & Masker",
     tabScience: "Fisika Model",
     
     // Drawer Content
@@ -114,8 +104,6 @@ export const translations = {
     medAshZone: "Zona Median 50%",
     lowAshZone: "Zona Jangkauan 5%",
     exposedPop: "Populasi Terpapar (P5–P95)",
-    schoolsImpacted: "Sekolah di Zona Bahaya",
-    hospitalsSafe: "Rumah Sakit Rujukan Aman",
     actionRecommended: "Rekomendasi Tindakan Mitigasi",
 
     // Common

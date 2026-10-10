@@ -1,51 +1,39 @@
 import React, { useState } from "react";
-import { X, BarChart3, GraduationCap, Ambulance, ShieldAlert, FlaskConical } from "lucide-react";
+import { X, BarChart3, ShieldAlert, FlaskConical } from "lucide-react";
 import { TabImpact } from "../tabs/TabImpact";
-import { TabSchools } from "../tabs/TabSchools";
-import { TabEvac } from "../tabs/TabEvac";
 import { TabHealth } from "../tabs/TabHealth";
 import { TabScience } from "../tabs/TabScience";
 import { useLanguage } from "../../context/useLanguage";
 import type {
   ImpactResponse,
-  FacilitiesImpactResponse,
   ValidationResponse,
-  HazardType,
-  SchoolItem
+  HazardType
 } from "../../types/api";
 
 interface AnalyticsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   impact: ImpactResponse | null;
-  facilities: FacilitiesImpactResponse | null;
   validation: ValidationResponse | null;
   hazard: HazardType;
   rainMm: number;
-  onFlyTo: (lat: number, lng: number) => void;
-  onDrawRoute: (s: SchoolItem) => void;
 }
 
-type TabType = "impact" | "schools" | "evac" | "health" | "science";
+type TabType = "impact" | "health" | "science";
 
 export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
   isOpen,
   onClose,
   impact,
-  facilities,
   validation,
   hazard,
-  rainMm,
-  onFlyTo,
-  onDrawRoute
+  rainMm
 }) => {
   const { lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>("impact");
 
   const tabs = [
     { id: "impact", label: lang === "id" ? "Dampak" : "Impact", icon: BarChart3 },
-    { id: "schools", label: lang === "id" ? "Sekolah" : "Schools", icon: GraduationCap },
-    { id: "evac", label: lang === "id" ? "Evakuasi" : "Evacuation", icon: Ambulance },
     { id: "health", label: lang === "id" ? "Kesehatan" : "PPE / Health", icon: ShieldAlert },
     { id: "science", label: lang === "id" ? "Sains" : "Science", icon: FlaskConical }
   ] as const;
@@ -75,8 +63,8 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
         </button>
       </div>
 
-      {/* 5 Tab Navigation */}
-      <nav className="grid grid-cols-5 shrink-0 bg-black/30 border-b border-white/10">
+      {/* Tab Navigation */}
+      <nav className="grid grid-cols-3 shrink-0 bg-black/30 border-b border-white/10">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -101,19 +89,6 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
       <div className="flex-1 overflow-y-auto p-4 bg-[#0f131a]/80">
         {activeTab === "impact" && (
           <TabImpact impact={impact} hazard={hazard} rainMm={rainMm} />
-        )}
-        {activeTab === "schools" && (
-          <TabSchools
-            schools={facilities?.schools || []}
-            onFlyTo={onFlyTo}
-            onDrawRoute={onDrawRoute}
-          />
-        )}
-        {activeTab === "evac" && (
-          <TabEvac
-            healthcare={facilities?.evacuation_referral_hospitals || facilities?.hospitals || facilities?.healthcare || []}
-            onFlyTo={onFlyTo}
-          />
         )}
         {activeTab === "health" && <TabHealth hazard={hazard} />}
         {activeTab === "science" && <TabScience validation={validation} hazard={hazard} />}

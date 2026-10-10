@@ -82,84 +82,8 @@ export interface ImpactResponse {
   children_exposed: ImpactRange;
   elderly_exposed: ImpactRange;
   area_exposed_km2: ImpactRange;
-  schools_exposed: ImpactRange;
-  healthcare_exposed: ImpactRange;
   agricultural_impact_ha?: number;
   water_sources_count?: number;
-}
-
-export interface SchoolItem {
-  id?: string;
-  facility_id?: string;
-  name: string;
-  district?: string;
-  province?: string;
-  lat?: number;
-  latitude?: number;
-  lng?: number;
-  longitude?: number;
-  exposure_prob_pct?: number;
-  exposure_pct?: number;
-  exposure_probability?: number;
-  eta_hours?: number;
-  arrival_time_earliest_h?: number | null;
-  arrival_time_most_likely_h?: number | null;
-  action_code?: string;
-  recommendation?: string;
-  action_detail?: string;
-  nearest_hospital?: {
-    name: string;
-    distance_km: number;
-    lat?: number;
-    latitude?: number;
-    lng?: number;
-    longitude?: number;
-  };
-  nearest_safe_hospital?: {
-    name: string;
-    distance_km: number;
-    lat?: number;
-    latitude?: number;
-    lng?: number;
-    longitude?: number;
-    district?: string;
-  };
-}
-
-export interface HospitalItem {
-  id?: string;
-  facility_id?: string;
-  name: string;
-  district?: string;
-  province?: string;
-  lat?: number;
-  latitude?: number;
-  lng?: number;
-  longitude?: number;
-  exposure_prob_pct?: number;
-  exposure_pct?: number;
-  exposure_probability?: number;
-  distance_from_source_km?: number;
-  distance_from_epicenter_km?: number;
-  is_safe?: boolean;
-  evacuation_status?: string;
-  status_badge?: string;
-  badge_color?: string;
-  evac_recommendation?: string;
-  emergency_hotline?: string;
-  capabilities?: string[];
-  arrival_time_earliest_h?: number | null;
-}
-
-export interface FacilitiesImpactResponse {
-  summary?: any;
-  total_schools_at_risk?: number;
-  total_healthcare_at_risk?: number;
-  schools: SchoolItem[];
-  hospitals?: HospitalItem[];
-  healthcare?: HospitalItem[];
-  evacuation_referral_hospitals?: HospitalItem[];
-  airports?: any[];
 }
 
 export interface ValidationResponse {
@@ -194,3 +118,78 @@ export interface ValidationResponse {
   timestamp?: string;
 }
 
+
+// ---------- National map modes (/layers/wind, /layers/heatmap, /layers/smoke-paths) ----------
+
+export interface WindGridSpec {
+  lat0: number;
+  lon0: number;
+  dlat: number;
+  dlon: number;
+  nlat: number;
+  nlon: number;
+}
+
+/** u/v in m/s; u[t][cell] with cell = iLat * nlon + iLon. */
+export interface WindFieldResponse {
+  available: boolean;
+  reason?: string;
+  generated_at: string;
+  source?: string;
+  fetched_at?: string;
+  origin?: "live" | "cache" | "snapshot";
+  stale?: boolean;
+  is_example?: boolean;
+  level?: "10m" | "850hPa";
+  units?: string;
+  step_hours?: number;
+  grid?: WindGridSpec;
+  times?: string[];
+  u?: number[][];
+  v?: number[][];
+  note?: string;
+}
+
+export interface HeatCell {
+  lat: number;
+  lon: number;
+  count: number;
+  frp_sum: number;
+}
+
+export interface HeatmapResponse {
+  available: boolean;
+  reason?: string;
+  kind?: string;
+  cell_deg?: number;
+  window_start?: string;
+  as_of?: string;
+  source?: string;
+  is_example?: boolean;
+  max_count?: number;
+  max_frp_sum?: number;
+  cells: HeatCell[];
+}
+
+export interface SmokePath {
+  source_type: "fire" | "volcano";
+  name: string;
+  source: { lat: number; lon: number };
+  frp_sum?: number;
+  level?: number;
+  wind_level: "10m" | "850hPa";
+  coords: [number, number][];
+}
+
+export interface SmokePathsResponse {
+  available: boolean;
+  reason?: string;
+  hours?: number;
+  start_time?: string;
+  marks_every_h?: number;
+  wind_fetched_at?: string;
+  stale?: boolean;
+  fires_as_of?: string;
+  note?: string;
+  paths: SmokePath[];
+}

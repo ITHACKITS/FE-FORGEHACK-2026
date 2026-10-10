@@ -221,33 +221,7 @@ export const LegendModal: React.FC<LegendModalProps> = ({ isOpen, onClose }) => 
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Schools */}
-              <div className="p-3 rounded-xl flex flex-col gap-1.5 transition bg-teal-950/30 border border-teal-500/30">
-                <div className="flex items-center gap-2">
-                  <img src="/school.png" alt="School" className="w-6 h-6 object-contain" />
-                  <strong className="text-xs font-bold text-teal-300">
-                    Schools
-                  </strong>
-                </div>
-                <span className="text-[11px] leading-relaxed text-slate-300">
-                  Educational facilities. Recommended distance learning (remote school) if inside danger zone.
-                </span>
-              </div>
-
-              {/* Healthcare */}
-              <div className="p-3 rounded-xl flex flex-col gap-1.5 transition bg-cyan-950/30 border border-cyan-500/30">
-                <div className="flex items-center gap-2">
-                  <img src="/hospital.png" alt="Hospital" className="w-6 h-6 object-contain" />
-                  <strong className="text-xs font-bold text-cyan-300">
-                    Healthcare Facilities
-                  </strong>
-                </div>
-                <span className="text-[11px] leading-relaxed text-slate-300">
-                  Hospitals &amp; clinics. Primary referral destinations for respiratory emergency evacuation.
-                </span>
-              </div>
-
+            <div className="grid grid-cols-1 gap-3">
               {/* Airports */}
               <div className="p-3 rounded-xl flex flex-col gap-1.5 transition bg-purple-950/30 border border-purple-500/30">
                 <div className="flex items-center gap-2">
