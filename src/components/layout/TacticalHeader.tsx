@@ -91,7 +91,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
   return (
     <div className="absolute top-2 left-2 right-2 sm:top-3 sm:left-4 sm:right-4 z-[1100] pointer-events-none">
       <header
-        className="pointer-events-auto w-full max-w-7xl mx-auto aurora-glass-card rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between transition-all duration-300 shadow-2xl"
+        className="pointer-events-auto w-full mx-auto aurora-glass-card rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-3 whitespace-nowrap transition-all duration-300 shadow-2xl"
       >
         {/* Brand Logo & Title */}
         <a
@@ -108,14 +108,14 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             <span className="font-extrabold text-sm sm:text-base tracking-tight text-white drop-shadow-sm">
               StandbAI
             </span>
-            <span className="font-bold text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md tracking-wider text-white shadow-xs bg-gradient-to-r from-emerald-600 to-rose-600 border border-white/20">
+            <span className="hidden sm:inline font-bold text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md tracking-wider text-white shadow-xs bg-gradient-to-r from-emerald-600 to-rose-600 border border-white/20">
               INDONESIA
             </span>
           </div>
         </a>
 
-        {/* Telemetry Badges (Desktop / Tablet view) */}
-        <div className="hidden lg:flex items-center gap-2.5">
+        {/* Telemetry badges: only from 1280 px, where the whole bar fits on one line */}
+        <div className="hidden xl:flex items-center gap-2.5">
           <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs backdrop-blur-md bg-white/10 border border-white/15 text-slate-100 shadow-sm transition hover:scale-105"
             title="PVMBG Active Volcano Alert Status (Level III Watch & Level IV Warning)"
@@ -145,11 +145,11 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
           {/* Back to Landing Page Button */}
           <a
             href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer aurora-btn border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/20 shadow-sm"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer aurora-btn border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/20 shadow-sm"
             title={t.backToLanding}
           >
             <Home className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="hidden sm:inline">{t.landingPage}</span>
+            <span className="hidden lg:inline">{t.landingPage}</span>
           </a>
 
           {/* Language Switcher Toggle (EN | ID) */}
@@ -163,7 +163,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
           </button>
 
           {/* Dual Digital Clock */}
-          <div className="text-right font-mono text-[11px] hidden md:block leading-tight text-slate-200">
+          <div className="text-right font-mono text-[11px] hidden lg:max-xl:block min-[1360px]:block leading-tight text-slate-200">
             <div className="font-bold">{clockWib}</div>
             <div className="text-[9px] text-slate-400">{clockUtc}</div>
           </div>
@@ -176,7 +176,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             title="Sync live NASA FIRMS & Open-Meteo data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-rose-400" : "text-emerald-400"}`} />
-            <span className="hidden md:inline">{syncStatus || t.liveSync}</span>
+            <span className="hidden lg:inline">{syncStatus || t.liveSync}</span>
           </button>
 
           {/* Map Legend Button */}
@@ -200,7 +200,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             title="Toggle Impact Projection Drawer"
           >
             <PanelRight className="w-3.5 h-3.5 text-rose-300" />
-            <span className="hidden sm:inline">{t.analyticsDrawer}</span>
+            <span className="hidden md:inline">{t.analyticsDrawer}</span>
           </button>
 
           {/* Mobile Menu Toggle Button */}

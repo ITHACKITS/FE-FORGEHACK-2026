@@ -68,6 +68,13 @@ flowchart LR
 - **National map modes** (`src/components/layout/NationalModes.tsx`): "Wind & smoke" (canvas wind particles from `/layers/wind`, 16-day WIB slider labelled Forecast or Indicative after day 7, 10 m smoke or 850 hPa ash, smoke/ash paths from `/layers/smoke-paths`) and "Fire heatmap" (`/layers/heatmap`). The example smoke sim hides while a mode is on; failures show a "Data unavailable" chip with Retry.
 - **FE-03 (part):** `CONFIG.API_BASE` reads `VITE_API_BASE_URL`, falling back to `http://127.0.0.1:8000`.
 
+**Update 2026-10-10 20:00 WIB** (branch `fix/map-performance-radius`):
+- **Map lag fixed:** the 4,248 national hotspots were DOM `<img>` markers; they are now canvas circle markers. The camera readout and scale bar (`MapReadouts.tsx`) subscribe to the map themselves, so a pan no longer re-renders `MapWorkspace` every frame. The map uses `preferCanvas`; the example smoke animation is capped at ~30 fps.
+- **Radius rendering** (`src/simulation/nearbyLayers.ts`): volcanoes, fire-prone forests (new tree markers), hotspots and Level III+ ash paths (72 h, `/layers/smoke-paths`) draw only within a render radius of the map centre: half the viewport diagonal, clamped to 100–500 km, recomputed on `moveend`. Level III–IV volcanoes and the selected event always show. A faint dashed ring and a line in the layer panel show the radius. Clicking a forest selects it as a fire event.
+- **Time frames:** the national panel is now Off / History / Now / Forecast. History = fire heatmap, last 7 days (API max). Now = latest detection day heatmap plus current wind. Forecast = 16-day wind with 72 h smoke/ash paths. Smoke and heatmap are layers of one panel, not separate modes.
+- **Header and defaults:** airports start unchecked on `/simulate`. The simulator header spans the full width and never wraps; labels hide progressively on narrow screens (no overflow from 360 px up). The landing nav labels never wrap; the nav collapses into the menu below 1280 px.
+- **Not done (needs backend + AI):** AI summaries or chat per time frame (Featherless GLM/Qwen via the AI service, exposed by a backend endpoint); the landing-page empty gap.
+
 ## 6. Conventions
 - **Stack:** React 19 function components, TypeScript strict, Vite 8, Tailwind v4 for layout glue, prototype CSS tokens for all colours, `oxlint`.
 - **Config:** `VITE_API_BASE_URL`, `VITE_TELEGRAM_BOT_URL`. Never put API keys in the frontend.
@@ -92,6 +99,8 @@ flowchart LR
 | 2026-10-10 | Schools and hospitals removed from the product; airports stay | Team decision; focus on households |
 | 2026-10-10 | Wind and smoke shown up to 16 days (days 8–16 "indicative"); no multi-year predictions | No forecast skill beyond about two weeks |
 | 2026-10-10 | Own canvas heat and wind layers instead of Leaflet plugins | No new dependencies; same overlay pattern as the smoke layer |
+| 2026-10-10 | Render map landmarks only within 100–500 km of the map centre (zoom-based); Level III–IV volcanoes always | Thousands of points made the map lag |
+| 2026-10-10 | One national panel with History / Now / Forecast; smoke and heatmap combined | Users ask "what happened, what is happening, what is coming", not "which layer" |
 
 ## 8. Links
 - Backend: https://github.com/ITHACKITS/BE-FORGEHACK-2026 · AI: https://github.com/ITHACKITS/AI-FORGEHACK-2026

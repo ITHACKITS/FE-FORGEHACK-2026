@@ -196,6 +196,8 @@ export const App: React.FC = () => {
           currentHour={currentHour}
           hourlyTiersCache={hourlyTiersCache}
           onSelectEvent={(newId) => {
+            // Forest ids start with "hutan_"; clicking one switches the hazard to fire.
+            setHazard(newId.startsWith("hutan_") ? "fire" : "volcano");
             setEventId(newId);
           }}
           resetViewTrigger={resetViewTrigger}
