@@ -22,14 +22,13 @@
     el('sDir').value=st.dir;el('sSpd').value=st.spd;el('sH').value=st.H;
   })();
 
-  /* fasilitas contoh */
-  var fr=mul(42),schools=[],hosp=[];
-  for(var i=0;i<14;i++)schools.push({x:.06+.88*fr(),y:.1+.8*fr(),p:0,id:String.fromCharCode(65+i)});
-  [[.14,.2],[.52,.86],[.9,.18]].forEach(function(h){hosp.push({x:h[0],y:h[1],p:0});});
+  /* desa contoh */
+  var fr=mul(42),towns=[];
+  for(var i=0;i<14;i++)towns.push({x:.06+.88*fr(),y:.1+.8*fr(),p:0,id:String.fromCharCode(65+i)});
 
   function compute(){
     var r=mul(st.seed),NC=GW*GH,cnt=new Uint8Array(NC),seen=new Int16Array(NC).fill(-1);
-    /* waktu tiba abu pertama (jam) per anggota per sel, untuk tabel prioritas sekolah */
+    /* waktu tiba abu pertama (jam) per anggota per sel, untuk tabel prioritas desa */
     var arr=new Float32Array(M*NC).fill(Infinity);
     var sx=src.x*KMW,sy=(1-src.y)*KMH,tmax=2+st.H*.75,sig0=2+st.H*.6;
     for(var m=0;m<M;m++){
@@ -47,12 +46,11 @@
     }
     for(var q=0;q<prob.length;q++)prob[q]=cnt[q]/M;
     function cell(f){return Math.min(GH-1,(f.y*GH)|0)*GW+Math.min(GW-1,(f.x*GW)|0);}
-    schools.forEach(function(f){
+    towns.forEach(function(f){
       var c=cell(f),ts=[];for(var mm=0;mm<M;mm++){var v=arr[mm*NC+c];if(v<Infinity)ts.push(v);}
       ts.sort(function(a,b){return a-b;});
       f.p=prob[c];f.t50=ts.length?ts[(ts.length-1)>>1]:null;f.tmin=ts.length?ts[0]:null;
     });
-    hosp.forEach(function(f){f.p=prob[cell(f)];});
   }
 
   var W=0,H=0,DPR=1;
@@ -75,28 +73,12 @@
         if(tier===ti)bx.fillRect(cx*cw-.4,cy*ch-.4,cw+.8,ch+.8);
       }
     });
-    /* rute dari sekolah paling terpapar ke rumah sakit aman terdekat */
-    var worst=null,safe=hosp.filter(function(h){return h.p<.05;});
-    schools.forEach(function(f){if(f.p>=.5&&(!worst||f.p>worst.p))worst=f;});
-    var route=null;
-    if(worst&&safe.length){
-      var bd=1e9,bh=null;safe.forEach(function(h){var d=Math.hypot((h.x-worst.x)*KMW,(h.y-worst.y)*KMH);if(d<bd){bd=d;bh=h;}});
-      route={a:worst,b:bh,km:bd};
-      bx.save();bx.setLineDash([7*DPR,6*DPR]);bx.strokeStyle=INK;bx.lineWidth=2*DPR;bx.beginPath();bx.moveTo(worst.x*W,worst.y*H);bx.lineTo(bh.x*W,bh.y*H);bx.stroke();bx.restore();
-      var mx=(worst.x+bh.x)/2*W,my=(worst.y+bh.y)/2*H,tx=fmt(bd,1)+' km';
-      bx.font='500 '+(11*DPR)+'px DM Mono,monospace';var tw=bx.measureText(tx).width;
-      bx.fillStyle=INK;bx.fillRect(mx-tw/2-6*DPR,my-9*DPR,tw+12*DPR,18*DPR);bx.fillStyle=PAPER;bx.textBaseline='middle';bx.textAlign='center';bx.fillText(tx,mx,my+.5);
-    }
-    schools.forEach(function(f){
+    towns.forEach(function(f){
       var s=9*DPR;bx.fillStyle=f.p>=.9?'#261D19':(f.p>=.5?'#93403A':PAPER);bx.strokeStyle=INK;bx.lineWidth=1.6*DPR;
       bx.fillRect(f.x*W-s/2,f.y*H-s/2,s,s);bx.strokeRect(f.x*W-s/2,f.y*H-s/2,s,s);
       bx.font='500 '+(10*DPR)+'px DM Mono,monospace';bx.textAlign='left';bx.textBaseline='middle';
       bx.lineWidth=3*DPR;bx.strokeStyle='rgba(246,240,226,.9)';bx.strokeText(f.id,f.x*W+s*.75,f.y*H-s*.6);
       bx.fillStyle=INK;bx.fillText(f.id,f.x*W+s*.75,f.y*H-s*.6);
-    });
-    hosp.forEach(function(h){
-      var ok=h.p<.05,rr=9*DPR;bx.beginPath();bx.arc(h.x*W,h.y*H,rr,0,6.283);bx.fillStyle=ok?'#2F7F7C':PAPER;bx.fill();bx.lineWidth=2*DPR;bx.strokeStyle=ok?INK:'#93403A';bx.stroke();
-      bx.strokeStyle=ok?PAPER:'#93403A';bx.lineWidth=2.2*DPR;bx.beginPath();bx.moveTo(h.x*W-4*DPR,h.y*H);bx.lineTo(h.x*W+4*DPR,h.y*H);bx.moveTo(h.x*W,h.y*H-4*DPR);bx.lineTo(h.x*W,h.y*H+4*DPR);bx.stroke();
     });
     var X=src.x*W,Y=src.y*H,t=13*DPR;
     bx.beginPath();bx.moveTo(X,Y-t);bx.lineTo(X+t*.9,Y+t*.7);bx.lineTo(X-t*.9,Y+t*.7);bx.closePath();bx.fillStyle='#E0612B';bx.fill();bx.lineWidth=2.2*DPR;bx.strokeStyle=INK;bx.stroke();
@@ -104,9 +86,9 @@
     /* mata angin */
     var nx=W-22*DPR,ny=26*DPR;bx.beginPath();bx.moveTo(nx,ny-12*DPR);bx.lineTo(nx+5*DPR,ny+4*DPR);bx.lineTo(nx,ny);bx.lineTo(nx-5*DPR,ny+4*DPR);bx.closePath();bx.fillStyle=INK;bx.fill();
     bx.textAlign='center';bx.textBaseline='top';bx.fillText('U',nx,ny+7*DPR);
-    return route;
   }
-  var currentLang = localStorage.getItem('standbai_lang') || 'id';
+  var currentLang = 'en';
+  try { currentLang = localStorage.getItem('standbai_lang') || 'en'; } catch { /* storage blocked */ }
   var CARD = {
     id: ['Utara','Timur Laut','Timur','Tenggara','Selatan','Barat Daya','Barat','Barat Laut'],
     en: ['North','Northeast','East','Southeast','South','Southwest','West','Northwest']
@@ -118,13 +100,13 @@
     var ths = tbl.querySelectorAll('thead th');
     if(ths.length >= 5){
       if(currentLang === 'en'){
-        ths[0].textContent = 'School';
+        ths[0].textContent = 'Village';
         ths[1].textContent = 'Ash Prob';
         ths[2].textContent = 'Arrival (med)';
         ths[3].textContent = 'Earliest';
         ths[4].textContent = 'Action';
       } else {
-        ths[0].textContent = 'Sekolah';
+        ths[0].textContent = 'Desa';
         ths[1].textContent = 'Peluang abu';
         ths[2].textContent = 'Tiba (median)';
         ths[3].textContent = 'Tercepat';
@@ -132,21 +114,20 @@
       }
     }
   }
-  function readout(route){
-    var hi=0,pjj=0;schools.forEach(function(f){if(f.p>=.9)hi++;if(f.p>=.4)pjj++;});
-    var safe=hosp.filter(function(h){return h.p<.05;}).length;
+  function readout(){
+    var hi=0,warn=0;towns.forEach(function(f){if(f.p>=.9)hi++;if(f.p>=.4)warn++;});
     if(currentLang === 'en'){
-      el('simRead').innerHTML='<span><strong>'+pjj+' of '+schools.length+'</strong> sample schools have 40%+ likelihood of ash exposure; '+hi+' of them are in the 90% core zone. Distance learning is recommended for these schools.</span><span><strong>'+safe+' of '+hosp.length+'</strong> sample hospitals are outside the 5% dispersion contour.'+(route?' Nearest safe referral route from highest-exposure school is <strong>'+fmt(route.km,1)+' km</strong>.':'')+'</span>';
+      el('simRead').innerHTML='<span><strong>'+warn+' of '+towns.length+'</strong> sample villages have a 40%+ chance of ash; '+hi+' of them are in the 90% core zone.</span><span>Households there should have masks, drinking water and medicine ready before the ash arrives.</span>';
     } else {
-      el('simRead').innerHTML='<span><strong>'+pjj+' dari '+schools.length+'</strong> sekolah contoh berpeluang 40% atau lebih terkena abu; '+hi+' di antaranya berada di inti zona 90%. Kegiatan belajar di sekolah tersebut disarankan beralih ke daring.</span><span><strong>'+safe+' dari '+hosp.length+'</strong> rumah sakit contoh berada di luar zona 5%.'+(route?' Rute rujukan terdekat dari sekolah paling terpapar sepanjang <strong>'+fmt(route.km,1)+' km</strong>.':'')+'</span>';
+      el('simRead').innerHTML='<span><strong>'+warn+' dari '+towns.length+'</strong> desa contoh berpeluang 40% atau lebih terkena abu; '+hi+' di antaranya berada di inti zona 90%.</span><span>Rumah tangga di sana sebaiknya menyiapkan masker, air minum, dan obat sebelum abu tiba.</span>';
     }
-    var top=schools.slice().sort(function(a,b){return (b.p-a.p)||((a.tmin||99)-(b.tmin||99));}).slice(0,3);
+    var top=towns.slice().sort(function(a,b){return (b.p-a.p)||((a.tmin||99)-(b.tmin||99));}).slice(0,3);
     el('simTable').tBodies[0].innerHTML=top.map(function(f){
       var a = currentLang === 'en'
-        ? (f.p>=.4?['hi','Switch to online']:(f.p>=.05?['md','Alert, prepare N95']:['lo','Normal routine']))
-        : (f.p>=.4?['hi','Alihkan ke daring']:(f.p>=.05?['md','Siaga, siapkan N95']:['lo','Kegiatan normal']));
-      var schName = (currentLang === 'en' ? 'School ' : 'Sekolah ') + f.id;
-      return '<tr><td><span class="sl">'+f.id+'</span>'+schName+'</td><td><span class="meter"><i style="width:'+Math.round(f.p*100)+'%"></i></span>'+Math.round(f.p*100)+'%</td><td>'+fmtT(f.t50)+'</td><td>'+fmtT(f.tmin)+'</td><td><span class="act '+a[0]+'">'+a[1]+'</span></td></tr>';
+        ? (f.p>=.4?['hi','Masks on, stay indoors']:(f.p>=.05?['md','Prepare N95 and water']:['lo','Normal routine']))
+        : (f.p>=.4?['hi','Pakai masker, tetap di dalam']:(f.p>=.05?['md','Siapkan N95 dan air']:['lo','Kegiatan normal']));
+      var townName = (currentLang === 'en' ? 'Village ' : 'Desa ') + f.id;
+      return '<tr><td><span class="sl">'+f.id+'</span>'+townName+'</td><td><span class="meter"><i style="width:'+Math.round(f.p*100)+'%"></i></span>'+Math.round(f.p*100)+'%</td><td>'+fmtT(f.t50)+'</td><td>'+fmtT(f.tmin)+'</td><td><span class="act '+a[0]+'">'+a[1]+'</span></td></tr>';
     }).join('');
   }
   /* jam desimal menjadi teks: "45 menit", "2 jam 15 menit" */
@@ -158,7 +139,7 @@
     }
     return m<60?m+' menit':Math.floor(m/60)+' jam'+(m%60?' '+(m%60)+' menit':'');
   }
-  function rebuild(){compute();var rt=drawBase();readout(rt);}
+  function rebuild(){compute();drawBase();readout();}
   var pending=false;function queue(){if(pending)return;pending=true;requestAnimationFrame(function(){pending=false;rebuild();if(reduce)paint(0);});}
 
   function size(){
