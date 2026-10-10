@@ -3,7 +3,7 @@ import { Zap, Play, Printer, ChevronDown, ChevronUp, SlidersHorizontal } from "l
 import type { HazardType, ModelingMode, SimulationOverrides } from "../../types/api";
 import { api } from "../../services/api";
 import { CONFIG } from "../../config/constants";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 
 interface ControllerDockProps {
   hazard: HazardType;

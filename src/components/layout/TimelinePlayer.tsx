@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Play, Pause, ChevronUp, ChevronDown } from "lucide-react";
 import { formatHour } from "../../utils/formatters";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 
 interface TimelinePlayerProps {
   currentHour: number;

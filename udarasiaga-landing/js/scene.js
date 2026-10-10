@@ -7,7 +7,7 @@
   var THREE=window.THREE,canvas=document.getElementById('gl'),renderer;
   if(!THREE){root.classList.add('nogl');return;}
   try{renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:false,alpha:false,stencil:false,powerPreference:'high-performance'});}
-  catch(e){root.classList.add('nogl');return;}
+  catch{root.classList.add('nogl');return;}
   if(!renderer.getContext()){root.classList.add('nogl');return;}
   var GL2=renderer.capabilities.isWebGL2,ext=renderer.extensions;
   var mobile=window.innerWidth<700||/Mobi|Android/i.test(navigator.userAgent);
@@ -727,7 +727,7 @@
   var mapleTex=(function(){var cv=document.createElement('canvas');cv.width=cv.height=128;var g=cv.getContext('2d');
     var Pm=[[64,13],[71.5,29],[82,25],[79,45],[95,37],[92,53],[112,56],[102,69],[108,81],[85,76],[81,87],[68.5,82],[68.5,115],[59.5,115],[59.5,82],[47,87],[43,76],[20,81],[26,69],[16,56],[36,53],[33,37],[49,45],[46,25],[56.5,29]],
       V=[[[64,84],[64,13]],[[64,79],[95,37]],[[64,79],[33,37]],[[64,76.5],[110,56]],[[64,76.5],[18,56]],[[64,84],[104,80]],[[64,84],[24,80]],[[64,84],[64,114]]];
-    g.beginPath();Pm.forEach(function(q,i){i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]);});g.closePath();g.fillStyle='#c8c8c8';g.fill();
+    g.beginPath();Pm.forEach(function(q,i){if(i)g.lineTo(q[0],q[1]);else g.moveTo(q[0],q[1]);});g.closePath();g.fillStyle='#c8c8c8';g.fill();
     g.strokeStyle='#ffffff';g.lineCap='round';V.forEach(function(l,i){g.lineWidth=i?2.6:4;g.beginPath();g.moveTo(l[0][0],l[0][1]);g.lineTo(l[1][0],l[1][1]);g.stroke();});
     var t=new THREE.CanvasTexture(cv);t.needsUpdate=true;return t;})();
   var leafU=Object.assign({},shared,{uLeaf:{value:0},uMap:{value:mapleTex}});
@@ -810,7 +810,7 @@
         if(!rOn)comp.uniforms.uRays.value=0;
         pass(comp,null);
       }};
-  })();}catch(err){post=null;}
+  })();}catch{post=null;}
 
   /* ---------- ukuran dan tata letak ---------- */
   var aspect=1.6,crY=0,lavaPt=new THREE.Vector3(),mudPt=new THREE.Vector3();
@@ -853,7 +853,7 @@
   }
   var WEATHER=[['rain','rain'],['storm','storm'],['snow','snow'],['autumn','autumn'],['sakura','sakura']];
   var pulse=1,vlT=0,nextVl=3,vlPos=new THREE.Vector3(),nightK=0,dl=1;
-  function apply(time){
+  function apply(){
     var hz=Math.min(1,S.smoke*.9);
     hazeCol.copy(P.red).lerp(P.maroon,.5);
     var sb=skyBody(S.hour,0),mb=skyBody(S.hour,Math.PI),e=sb.e;dl=smoothstep01(-.12,.18,e);

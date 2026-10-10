@@ -27,7 +27,7 @@
       nav_outputs: "Keluaran",
       nav_refs: "Rujukan",
       nav_cta: "Jalankan Simulator Web",
-      hero_kicker: "JOINTS UGM 2026 · Peringatan aksi dini multi-bahaya",
+      hero_kicker: "ForgeHack 2026 · Peringatan aksi dini multi-bahaya",
       hero_lede: "StandbAI memodelkan sebaran abu vulkanik dan asap kebakaran lahan dari data pemantauan resmi, lalu menerjemahkannya menjadi daftar wilayah, sekolah, dan fasilitas kesehatan yang perlu bersiap lebih dulu.",
       btn_launch_sim: "Jalankan Simulator Web",
       btn_mini_sim: "Coba Mini Simulasi",
@@ -163,7 +163,7 @@
       nav_outputs: "Outputs",
       nav_refs: "References",
       nav_cta: "Launch Web Simulator",
-      hero_kicker: "JOINTS UGM 2026 · Multi-hazard early action warning",
+      hero_kicker: "ForgeHack 2026 · Multi-hazard early action warning",
       hero_lede: "StandbAI models volcanic ash dispersion and peatland wildfire smoke from official monitoring data, translating predictions into prioritized action lists for communities, schools, and hospitals.",
       btn_launch_sim: "Launch Web Simulator",
       btn_mini_sim: "Try Mini Simulation",
@@ -458,7 +458,7 @@
       });
       root.classList.add('has-lenis');
       US.lenis=lenis;
-    }catch(e){lenis=null;}
+    }catch{lenis=null;}
   }
   var easeSnap=function(t){return 1-Math.pow(1-t,4);};
   function goTo(t,instant){

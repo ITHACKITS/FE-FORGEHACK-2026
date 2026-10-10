@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { RefreshCw, PanelRight, Layers, Menu, X, Home, Globe } from "lucide-react";
 import { api } from "../../services/api";
 import type { SummaryKpiResponse } from "../../types/api";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 
 interface TacticalHeaderProps {
   onResetView?: () => void;
@@ -67,7 +67,11 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
   };
 
   useEffect(() => {
-    loadKpi();
+    let cancelled = false;
+    api.getSummaryKpi()
+      .then((data) => { if (!cancelled) setKpi(data); })
+      .catch(() => { /* Offline fallback */ });
+    return () => { cancelled = true; };
   }, []);
 
   const handleSync = async () => {

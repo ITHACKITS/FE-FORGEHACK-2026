@@ -8,6 +8,15 @@ export const CONFIG = {
     ? window.location.origin
     : "http://127.0.0.1:8000",
 
+  // Google Maps Platform API Key (used for 3D Map3D element & Street View)
+  GOOGLE_MAPS_API_KEY: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string ?? "",
+
+  // Feature flags. The Google Maps 3D view is kept in code but hidden: it is unverified,
+  // needs a billed Maps key and its CSS tilt broke map click hit-testing (PRD FE-10).
+  FEATURES: {
+    MAP_3D: false
+  },
+
   DEFAULT_MAP_VIEW: {
     lat: -2.5,
     lng: 118.0,

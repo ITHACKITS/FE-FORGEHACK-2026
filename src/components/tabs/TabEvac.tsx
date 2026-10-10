@@ -1,6 +1,6 @@
 import React from "react";
 import type { HospitalItem } from "../../types/api";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 
 interface TabEvacProps {
   healthcare: HospitalItem[];

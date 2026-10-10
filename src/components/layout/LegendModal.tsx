@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { X, Layers, Flame, ShieldAlert, Info } from "lucide-react";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 
 interface LegendModalProps {
   isOpen: boolean;

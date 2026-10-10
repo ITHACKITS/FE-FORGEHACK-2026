@@ -1,6 +1,6 @@
 import React from "react";
 import type { HazardType } from "../../types/api";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 
 interface TabHealthProps {
   hazard?: HazardType;
