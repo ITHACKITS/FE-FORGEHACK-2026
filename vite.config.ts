@@ -13,6 +13,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
+        loading: resolve(import.meta.dirname, 'loading.html'),
         simulator: resolve(import.meta.dirname, 'simulator.html'),
       },
     },

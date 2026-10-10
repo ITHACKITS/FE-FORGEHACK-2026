@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Standbai | Opening the web simulator</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" type="image/png" href="/Logo.png">
+<link rel="preload" as="video" href="/loadingpage/standbai-loading.mp4" type="video/mp4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #FFFFFF;          /* matches the video background so the edges disappear */
+    --ink: #16302A;
+    --muted: #4B5F58;
+    --leaf: #3E7B34;
+    --leaf-soft: #D5E6CF;
+    --sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'DM Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --ease: cubic-bezier(.16, 1, .3, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    transition: opacity .45s var(--ease);
+  }
+  body.leaving { opacity: 0; }
+
+  .stage {
+    width: min(760px, 100% - 32px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(12px, 2.4vh, 24px);
+  }
+  .eye {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    display: block;
+    object-fit: contain;
+    background: var(--bg);
+    animation: rise .9s var(--ease) both;
+  }
+
+  .status {
+    width: min(360px, 100%);
+    display: grid;
+    gap: 10px;
+    text-align: center;
+    animation: rise .9s .15s var(--ease) both;
+  }
+  .brand {
+    margin: 0;
+    font-weight: 700;
+    font-size: clamp(18px, 2.4vw, 22px);
+    letter-spacing: -.01em;
+  }
+  .msg {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 1.4em;
+  }
+  .bar {
+    height: 4px;
+    border-radius: 99px;
+    background: var(--leaf-soft);
+    overflow: hidden;
+  }
+  .bar > i {
+    display: block;
+    height: 100%;
+    width: 100%;
+    border-radius: inherit;
+    background: var(--leaf);
+    transform-origin: left center;
+    transform: scaleX(0);
+    transition: transform .25s linear;
+  }
+
+  .skip {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: 1px solid rgba(22, 48, 42, .2);
+    border-radius: 99px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 600 14px/1 var(--sans);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .2s, border-color .2s;
+  }
+  .skip:hover { background: #F2F7F0; border-color: rgba(22, 48, 42, .4); }
+  .skip:focus-visible, .eye:focus-visible { outline: 3px solid var(--leaf); outline-offset: 3px; }
+  .skip svg { width: 16px; height: 16px; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .eye, .status { animation: none; }
+    body, .bar > i { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="stage">
+  <video class="eye" id="eye" muted playsinline preload="auto" aria-hidden="true"
+         poster="/loadingpage/standbai-loading-poster.webp">
+    <source src="/loadingpage/standbai-loading.mp4" type="video/mp4">
+  </video>
+  <div class="status" role="status" aria-live="polite">
+    <p class="brand">Standbai</p>
+    <p class="msg" id="msg">Opening the web simulator…</p>
+    <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+  </div>
+</main>
+<a class="skip" id="skip" href="/simulator.html"><span id="skipLabel">Skip intro</span>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+
+<script>
+(function () {
+  // Interstitial between the landing page and the web simulator: plays the intro
+  // video once while the simulator's assets are prefetched, then hands over.
+  var TARGET = '/simulator.html' + location.search + location.hash;
+  var MAX_WAIT_MS = 14000;     // hard cap in case the video stalls
+  var START_GRACE_MS = 4000;   // give up on the video if it has not started by then
+  var REDUCED_MS = 1200;       // short static hold for prefers-reduced-motion
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var copy = {
+    en: { title: 'Standbai | Opening the web simulator', open: 'Opening the web simulator…', ready: 'Ready. Taking you there…', skip: 'Skip intro' },
+    id: { title: 'Standbai | Membuka simulator web', open: 'Membuka simulator web…', ready: 'Siap. Mengalihkan…', skip: 'Lewati intro' }
+  };
+  var lang = 'en';
+  try { if (localStorage.getItem('standbai_lang') === 'id') lang = 'id'; } catch (e) { /* storage blocked */ }
+  var t = copy[lang];
+  document.documentElement.lang = lang;
+  document.title = t.title;
+
+  var video = document.getElementById('eye');
+  var bar = document.getElementById('bar');
+  var msg = document.getElementById('msg');
+  var skip = document.getElementById('skip');
+  msg.textContent = t.open;
+  document.getElementById('skipLabel').textContent = t.skip;
+  skip.href = TARGET;
+
+  var left = false;
+  function go() {
+    if (left) return;
+    left = true;
+    bar.style.transform = 'scaleX(1)';
+    msg.textContent = t.ready;
+    document.body.classList.add('leaving');
+    // replace() keeps this page out of history, so Back returns to the landing page.
+    setTimeout(function () { location.replace(TARGET); }, reduced ? 0 : 450);
+  }
+
+  skip.addEventListener('click', function (e) { e.preventDefault(); go(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') go();
+  });
+
+  // Warm the cache with the simulator's entry HTML, scripts and styles.
+  fetch('/simulator.html', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.text() : ''; })
+    .then(function (html) {
+      if (!html) return;
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      doc.querySelectorAll('script[src], link[rel="stylesheet"][href], link[rel="modulepreload"][href]').forEach(function (n) {
+        var href = n.getAttribute('src') || n.getAttribute('href');
+        if (!href) return;
+        var l = document.createElement('link');
+        l.rel = (n.tagName === 'SCRIPT' && n.type === 'module') || n.rel === 'modulepreload' ? 'modulepreload' : 'prefetch';
+        l.href = href;
+        if (n.tagName === 'LINK' && n.rel === 'stylesheet') l.as = 'style';
+        document.head.appendChild(l);
+      });
+    })
+    .catch(function () { /* prefetch is best-effort */ });
+
+  if (reduced) {
+    // Show the still poster instead of motion, then continue.
+    bar.style.transform = 'scaleX(1)';
+    setTimeout(go, REDUCED_MS);
+    return;
+  }
+
+  setTimeout(go, MAX_WAIT_MS);
+
+  video.addEventListener('timeupdate', function () {
+    if (video.duration) bar.style.transform = 'scaleX(' + Math.min(1, video.currentTime / video.duration) + ')';
+  });
+  video.addEventListener('ended', go);
+  video.addEventListener('error', go, true);
+
+  var started = false;
+  video.addEventListener('playing', function () { started = true; });
+  setTimeout(function () { if (!started) go(); }, START_GRACE_MS);
+
+  var p = video.play();
+  if (p && p.catch) p.catch(function () { /* autoplay blocked: the grace timer moves on */ });
+})();
+</script>
+</body>
+</html>
