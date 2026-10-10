@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Plus, Minus, Layers, X, LocateFixed, User, Eye, RotateCcw, Info } from "lucide-react";
@@ -32,6 +32,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const { lang } = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const map3DContainerRef = useRef<HTMLDivElement>(null);
+  const map3DElementRef = useRef<HTMLElement | null>(null);
+  const gmapsScriptLoadedRef = useRef(false);
 
   const baseTileLayerRef = useRef<L.TileLayer | null>(null);
   const labelsTileLayerRef = useRef<L.TileLayer | null>(null);
@@ -52,6 +55,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
   const [streetViewCoords, setStreetViewCoords] = useState<[number, number] | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [is3DLoading, setIs3DLoading] = useState(false);
+  const [map3DError, setMap3DError] = useState<string | null>(null);
 
   // Camera Telemetry State (Matching Google Earth Status Bar in Image 2)
   const [mapTelemetry, setMapTelemetry] = useState<{ lat: number; lng: number; zoom: number }>({
@@ -169,6 +174,85 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
   };
 
+  // Load Google Maps JS API script once
+  const loadGoogleMapsScript = useCallback((): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (gmapsScriptLoadedRef.current || (window as any).google?.maps) {
+        gmapsScriptLoadedRef.current = true;
+        resolve();
+        return;
+      }
+      // Check if script tag already in DOM
+      const existing = document.querySelector('script[data-gmaps-loader]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve());
+        existing.addEventListener('error', () => reject(new Error('Google Maps script failed to load')));
+        return;
+      }
+      const apiKey = CONFIG.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        reject(new Error('VITE_GOOGLE_MAPS_API_KEY is not set'));
+        return;
+      }
+      const script = document.createElement('script');
+      script.setAttribute('data-gmaps-loader', 'true');
+      // Use beta channel for Map3DElement (photorealistic 3D tiles)
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=beta&libraries=maps3d`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => { gmapsScriptLoadedRef.current = true; resolve(); };
+      script.onerror = () => reject(new Error('Failed to load Google Maps JS API. Check API key & enabled APIs.'));
+      document.head.appendChild(script);
+    });
+  }, []);
+
+  // Mount the real Google Maps 3D element inside map3DContainerRef
+  const mountMap3D = useCallback(async () => {
+    if (!map3DContainerRef.current) return;
+    setIs3DLoading(true);
+    setMap3DError(null);
+    try {
+      await loadGoogleMapsScript();
+      // Destroy any previous instance
+      if (map3DElementRef.current) {
+        map3DContainerRef.current.innerHTML = '';
+        map3DElementRef.current = null;
+      }
+      // Get current Leaflet center
+      const center = mapRef.current?.getCenter();
+      const lat = center?.lat ?? CONFIG.DEFAULT_MAP_VIEW.lat;
+      const lng = center?.lng ?? CONFIG.DEFAULT_MAP_VIEW.lng;
+      const zoom = mapRef.current?.getZoom() ?? CONFIG.DEFAULT_MAP_VIEW.zoom;
+      // Altitude based on zoom (rough Google Earth equivalent)
+      const altitudeMeters = Math.round(25_000_000 / Math.pow(2, zoom));
+
+      // Use the custom element registered by the Maps JS API beta
+      const el = document.createElement('gmp-map-3d') as HTMLElement;
+      el.setAttribute('center', `${lat},${lng},${altitudeMeters}`);
+      el.setAttribute('tilt', '67.5');
+      el.setAttribute('heading', String(heading));
+      el.style.width = '100%';
+      el.style.height = '100%';
+      el.style.display = 'block';
+      map3DContainerRef.current.appendChild(el);
+      map3DElementRef.current = el;
+    } catch (err: any) {
+      console.error('[Map3D]', err);
+      setMap3DError(err?.message ?? 'Unknown error loading 3D map');
+    } finally {
+      setIs3DLoading(false);
+    }
+  }, [heading, loadGoogleMapsScript]);
+
+  // Unmount Google Maps 3D element
+  const unmountMap3D = useCallback(() => {
+    if (map3DContainerRef.current) {
+      map3DContainerRef.current.innerHTML = '';
+    }
+    map3DElementRef.current = null;
+    setMap3DError(null);
+  }, []);
+
   // Google Earth 3D Mode Toggle
   const handleToggle3D = () => {
     if (!is3DMode) {
@@ -180,6 +264,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       setTilt(0);
       setHeading(0);
       setIsTiltPopoverOpen(false);
+      unmountMap3D();
     }
   };
 
@@ -261,14 +346,19 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     };
   }, []);
 
-  // Invalidate Leaflet tile bounds when 3D mode changes
+  // Invalidate Leaflet tile bounds when 3D mode changes; mount/unmount Google Maps 3D
   useEffect(() => {
-    if (mapRef.current) {
+    if (is3DMode) {
+      mountMap3D();
+    } else {
+      unmountMap3D();
+      // Refresh leaflet tiles after returning from 3D
       setTimeout(() => {
         mapRef.current?.invalidateSize();
       }, 150);
     }
-  }, [is3DMode, tilt]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [is3DMode]);
 
   // Reset View Handler
   useEffect(() => {
@@ -598,12 +688,13 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   }, [evacuationRoute]);
 
   // Calculate 3D perspective scale & translation to fill viewport seamlessly like Google Earth
-  const isTilted = is3DMode || tilt > 0;
+  // (Only used when not in real Google Maps 3D mode)
+  const isTilted = !is3DMode && tilt > 0;
   const perspectiveScale = isTilted ? 1.08 + (tilt / 60) * 1.18 : 1;
   const perspectiveTranslateY = isTilted ? -(tilt / 60) * 8.5 : 0;
   const transformString = isTilted
     ? `perspective(1200px) rotateX(${tilt}deg) rotateZ(${heading}deg) scale(${perspectiveScale}) translateY(${perspectiveTranslateY}%)`
-    : `perspective(1200px) rotateZ(${heading}deg)`;
+    : undefined;
 
   // Estimated altitude telemetry formula for Google Earth status bar
   const cameraAltitudeMeters = Math.round(25000000 / Math.pow(2, mapTelemetry.zoom));
@@ -620,7 +711,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         style={{ opacity: tilt > 0 ? Math.min(0.85, tilt / 35) : 0 }}
       />
 
-      {/* 2. Map Canvas Wrapper Container (Oversized when Tilted to Prevent Edge Cutoffs) */}
+      {/* 2. Map Canvas Wrapper — Leaflet 2D (hidden when Google Maps 3D is active) */}
       <div
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -629,19 +720,51 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         className={`absolute transition-all duration-300 ${
           isTilted ? "w-[160%] h-[190%] -left-[30%] -top-[45%]" : "w-full h-full left-0 top-0"
         }`}
+        style={{ visibility: is3DMode ? 'hidden' : 'visible' }}
       >
         <div 
           ref={mapContainerRef} 
           className="w-full h-full map-pane-tilt"
-          style={{
-            transform: transformString,
-            transformOrigin: "50% 88%"
-          }}
+          style={transformString ? { transform: transformString, transformOrigin: "50% 88%" } : undefined}
         />
       </div>
 
-      {/* 3. Google Earth 3D Mode Notice Banner (Gambar 2 Bottom Center) */}
-      {isTilted && (
+      {/* 2b. Google Maps Photorealistic 3D Layer (overlays when is3DMode = true) */}
+      <div
+        ref={map3DContainerRef}
+        className="absolute inset-0 z-[200]"
+        style={{ display: is3DMode ? 'block' : 'none' }}
+      />
+
+      {/* 2c. 3D Loading Spinner */}
+      {is3DMode && is3DLoading && (
+        <div className="absolute inset-0 z-[300] flex flex-col items-center justify-center bg-[#050a14]/80 backdrop-blur-sm gap-3">
+          <svg className="w-10 h-10 text-sky-400 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+          <span className="text-slate-300 text-sm font-medium">Loading Google Maps 3D…</span>
+        </div>
+      )}
+
+      {/* 2d. 3D Error Banner */}
+      {is3DMode && map3DError && !is3DLoading && (
+        <div className="absolute inset-0 z-[300] flex flex-col items-center justify-center bg-[#050a14]/85 backdrop-blur-sm gap-4 px-8 text-center">
+          <span className="text-4xl">⚠️</span>
+          <h3 className="text-white font-bold text-base">Google Maps 3D could not be loaded</h3>
+          <p className="text-slate-400 text-xs max-w-sm">{map3DError}</p>
+          <p className="text-slate-500 text-xs">Make sure the <strong className="text-slate-300">Maps JavaScript API</strong> and <strong className="text-slate-300">Map Tiles API</strong> are enabled in Google Cloud Console for your API key.</p>
+          <button
+            onClick={() => { setIs3DMode(false); setTilt(0); setHeading(0); }}
+            className="mt-2 px-5 py-2 rounded-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold transition"
+          >
+            Back to 2D Map
+          </button>
+        </div>
+      )}
+
+      {/* 3. Google Earth 3D Mode Notice Banner */}
+      {is3DMode && !is3DLoading && !map3DError && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[500] hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full aurora-glass-card border border-white/20 text-[11px] text-slate-200 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-300">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>Google Earth 3D Active &bull; Hold <kbd className="px-1 py-0.5 rounded bg-white/20 font-mono text-[9px] text-white">Shift</kbd> + Drag mouse to tilt & rotate</span>
