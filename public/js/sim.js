@@ -8,7 +8,7 @@
   var st={dir:80,spd:18,H:5,seed:7},src={x:.26,y:.58};
   var prob=new Float32Array(GW*GH);
   var INK='#16302A',PAPER='#F6F0E2';
-  var fmt=function(n,d){return n.toLocaleString('id-ID',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
+  var fmt=function(n,d){return n.toLocaleString(currentLang==='en'?'en-US':'id-ID',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
   function mul(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
   function gauss(r){var u=1-r(),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v);}
   var el=function(i){return document.getElementById(i);};

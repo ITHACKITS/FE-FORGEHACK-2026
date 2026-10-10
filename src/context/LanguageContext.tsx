@@ -5,7 +5,8 @@ import { LanguageContext } from "./useLanguage";
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<Language>(() => {
     const saved = localStorage.getItem("standbai_lang");
-    return (saved === "id" || saved === "en") ? saved : "id";
+    // English is the default, like the landing page; the choice is shared through localStorage.
+    return (saved === "id" || saved === "en") ? saved : "en";
   });
 
   const setLang = (newLang: Language) => {

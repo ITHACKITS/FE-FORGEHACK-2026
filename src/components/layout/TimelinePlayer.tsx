@@ -64,7 +64,7 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
             </button>
             <span className="text-xs font-bold text-white">{lang === "id" ? "Waktu Proyeksi:" : "Time Horizon:"}</span>
             <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded-lg bg-black/40 border border-white/15 text-emerald-300 shadow-xs">
-              {formatHour(currentHour)}
+              {formatHour(currentHour, lang)}
             </span>
           </div>
 
@@ -79,7 +79,7 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
                     : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 font-medium"
                 }`}
               >
-                T+{step}h
+                T+{step}{lang === "id" ? "j" : "h"}
               </button>
             ))}
           </div>
@@ -96,11 +96,11 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
             className="w-full cursor-pointer accent-emerald-400"
           />
           <div className="flex justify-between font-mono text-[9px] mt-0.5 font-bold text-slate-400">
-            <span>00:00 (Start)</span>
+            <span>00:00 ({lang === "id" ? "Mulai" : "Start"})</span>
             <span>12:00</span>
             <span>24:00</span>
             <span>36:00</span>
-            <span>48:00 (End)</span>
+            <span>48:00 ({lang === "id" ? "Selesai" : "End"})</span>
           </div>
         </div>
       </div>

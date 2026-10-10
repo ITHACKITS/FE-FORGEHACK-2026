@@ -38,13 +38,13 @@ function useMapView(map: L.Map | null, live: boolean): MapView | null {
   return view;
 }
 
-export const CameraReadout: React.FC<{ map: L.Map | null }> = ({ map }) => {
+export const CameraReadout: React.FC<{ map: L.Map | null; lang: "id" | "en" }> = ({ map, lang }) => {
   const view = useMapView(map, true);
   if (!view) return null;
   const altitude = Math.round(25_000_000 / Math.pow(2, view.zoom));
   return (
     <div className="absolute bottom-2 right-4 z-[500] hidden sm:flex items-center gap-3 text-[10px] font-mono text-slate-300/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-      <span>Camera: {altitude.toLocaleString()} m</span>
+      <span>{lang === "id" ? "Kamera" : "Camera"}: {altitude.toLocaleString(lang === "id" ? "id-ID" : "en-US")} m</span>
       <span className="text-white/30">&bull;</span>
       <span>
         {Math.abs(view.lat).toFixed(4)}°{view.lat >= 0 ? "N" : "S"}{" "}

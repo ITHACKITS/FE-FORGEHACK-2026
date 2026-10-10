@@ -3,7 +3,7 @@
 (function(){
   var root=document.documentElement;
   var reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  var fmt=function(n,d){return n.toLocaleString('id-ID',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
+  var fmt=function(n,d){return n.toLocaleString(currentLang==='en'?'en-US':'id-ID',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
   var $=function(s,c){return (c||document).querySelector(s);},$$=function(s,c){return [].slice.call((c||document).querySelectorAll(s));};
 
   /* status bersama untuk scene 3D. Jam > 24 berarti hari berikutnya, jadi langit berputar menerus */
@@ -89,7 +89,7 @@
       method_title: "Empat tahap dari data terbuka <em>ke rekomendasi</em>",
       method_lede: "Seluruh tahapan berjalan otomatis, sehingga pengguna di daerah tidak perlu mengolah data mentah sendiri.",
       method_1_title: "Akuisisi data",
-      method_1_desc: "Data PVMBG, NASA FIRMS, Open-Meteo, WorldPop, dan OpenStreetMap diperbarui otomatis tanpa input manual.",
+      method_1_desc: "Data PVMBG, NASA FIRMS, Open-Meteo, WorldPop, dan OpenStreetMap diperbarui otomatis tanpa masukan manual.",
       method_2_title: "Simulasi ensemble",
       method_2_desc: "Aplikasi menjalankan 15 hingga 51 anggota integrasi Lagrangian RK2 dengan perturbasi angin. Demo di halaman ini memakai 24 anggota.",
       method_3_title: "Analisis paparan",
@@ -159,7 +159,34 @@
       vc_snow: "Kabut dan salju di puncak tinggi, seperti di Puncak Jaya",
       vc_sakura: "Sakura bermekaran, seperti di Kebun Raya Cibodas",
       foot_note: "Estimasi ilmiah, bukan peringatan resmi. Rujuk PVMBG, BMKG, BNPB, dan BPBD.",
-      foot_top: "Kembali ke atas"
+      foot_top: "Kembali ke atas",
+      skip_content: "Lewati ke konten",
+      rail_aria: "Suasana halaman",
+      brand_aria: "StandbAI Indonesia, kembali ke atas",
+      nav_aria: "Navigasi utama",
+      flow_aria: "Alur dari data ke keputusan",
+      sim_canvas_aria: "Peta ilustrasi sebaran abu dengan zona 90%, 50%, dan 5% serta desa contoh. Tombol panah memindahkan sumber abu.",
+      lang_aria: "Ganti bahasa ke Inggris",
+      audio_on: "Nyalakan suara suasana alam",
+      audio_off: "Matikan suara suasana alam",
+      menu_open: "Buka menu",
+      menu_close: "Tutup menu",
+      rail_home: "Beranda",
+      rail_dry: "Kemarau",
+      rail_users: "Pengguna",
+      res_pm_label: "PM2.5 terlepas",
+      res_pm_unit: "ton per hari",
+      ref_tag_method: "Metode",
+      ref_pvmbg: "PVMBG, Badan Geologi",
+      ref_pvmbg_d: "Katalog gunung api Tipe A dan buletin VONA",
+      ref_firms_d: "Titik panas VIIRS dari Suomi-NPP dan NOAA-20",
+      ref_meteo_d: "Vektor angin dan curah hujan",
+      ref_pop: "WorldPop dan OpenStreetMap",
+      ref_pop_d: "Grid penduduk dan peta dasar",
+      ref_mastin: "Mastin dkk. (2009)",
+      ref_mastin_d: "M = 140,85 × H<sup>4,15</sup>, dengan M dalam kg/detik dan H dalam km",
+      ref_wooster: "Wooster dkk. (2005)",
+      ref_wooster_d: "Estimasi biomassa terbakar dari Fire Radiative Power"
     },
     en: {
       nav_ash: "Volcanic ash",
@@ -300,7 +327,34 @@
       vc_snow: "Mist and snow on glaciated peaks, like Puncak Jaya",
       vc_sakura: "Cherry blossoms in bloom, like at Cibodas Botanical Garden",
       foot_note: "Scientific estimation, not official warning. Refer to PVMBG, BMKG, BNPB, and BPBD.",
-      foot_top: "Back to top"
+      foot_top: "Back to top",
+      skip_content: "Skip to content",
+      rail_aria: "Page scenes",
+      brand_aria: "StandbAI Indonesia, back to top",
+      nav_aria: "Main navigation",
+      flow_aria: "From data to decisions",
+      sim_canvas_aria: "Illustrative ash dispersion map with 90%, 50% and 5% zones and sample villages. Arrow keys move the ash source.",
+      lang_aria: "Switch language to Indonesian",
+      audio_on: "Turn on ambient nature sounds",
+      audio_off: "Turn off ambient nature sounds",
+      menu_open: "Open menu",
+      menu_close: "Close menu",
+      rail_home: "Home",
+      rail_dry: "Dry season",
+      rail_users: "Users",
+      res_pm_label: "PM2.5 released",
+      res_pm_unit: "tons per day",
+      ref_tag_method: "Method",
+      ref_pvmbg: "PVMBG, Geological Agency",
+      ref_pvmbg_d: "Type A volcano catalogue and VONA bulletins",
+      ref_firms_d: "VIIRS hotspots from Suomi-NPP and NOAA-20",
+      ref_meteo_d: "Wind vectors and rainfall",
+      ref_pop: "WorldPop and OpenStreetMap",
+      ref_pop_d: "Population grid and base map",
+      ref_mastin: "Mastin et al. (2009)",
+      ref_mastin_d: "M = 140.85 × H<sup>4.15</sup>, with M in kg/s and H in km",
+      ref_wooster: "Wooster et al. (2005)",
+      ref_wooster_d: "Burned biomass estimated from Fire Radiative Power"
     }
   };
 
@@ -352,9 +406,9 @@
     currentLang = l;
     root.lang = l;
     try { localStorage.setItem('standbai_lang', l); } catch { /* storage blocked */ }
-    if(langBtnText) langBtnText.textContent = l === 'id' ? 'EN' : 'ID';
-    if(langBtn) langBtn.title = l === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia';
     var dict = DICT[l] || DICT.id;
+    if(langBtnText) langBtnText.textContent = l === 'id' ? 'EN' : 'ID';
+    if(langBtn){ langBtn.title = dict.lang_aria; langBtn.setAttribute('aria-label', dict.lang_aria); }
     $$('[data-i18n]').forEach(function(el){
       var k = el.getAttribute('data-i18n');
       if(dict[k]){
@@ -373,6 +427,25 @@
         }
       }
     });
+    /* attributes: data-i18n-attr="aria-label:key;title:key" */
+    $$('[data-i18n-attr]').forEach(function(el){
+      el.getAttribute('data-i18n-attr').split(';').forEach(function(pair){
+        var kv = pair.split(':');
+        if(kv.length === 2 && dict[kv[1].trim()]) el.setAttribute(kv[0].trim(), dict[kv[1].trim()]);
+      });
+    });
+    /* scene names in the vista captions */
+    $$('[data-scene-name]').forEach(function(el){
+      var n = SCENE_NAMES[l] && SCENE_NAMES[l][el.getAttribute('data-scene-name')];
+      if(n) el.textContent = n;
+    });
+    /* numbers: EN 18,500 and ID 18.500 */
+    $$('[data-num]').forEach(function(el){
+      el.textContent = el.getAttribute('data-num').split(',').map(function(n){ return fmt(+n); }).join('–');
+    });
+    if(typeof updateRail === 'function') updateRail();
+    setAudioLabel();
+    if(mBtn) mBtn.setAttribute('aria-label', mNav && mNav.classList.contains('open') ? dict.menu_close : dict.menu_open);
     if(windBtn){
       if(l === 'en') windBtn.textContent = 'Wind blowing ' + (T.wind>0?'eastward':'westward');
       else windBtn.textContent = 'Angin bertiup ke ' + (T.wind>0?'timur':'barat');
@@ -414,20 +487,28 @@
 
   /* ---------- kontrol audio suasana ---------- */
   var aBtn=$('#audioBtn');
+  function setAudioLabel(){
+    if(!aBtn) return;
+    var d = DICT[currentLang] || DICT.id, on = aBtn.getAttribute('aria-pressed') === 'true';
+    var label = on ? d.audio_off : d.audio_on;
+    aBtn.setAttribute('aria-label', label);
+    aBtn.title = label;
+  }
+  setAudioLabel();
   if(aBtn){
     aBtn.addEventListener('click',function(){
       if(!window.HLAudio)return;
       var on=window.HLAudio.toggle();
       aBtn.setAttribute('aria-pressed',on?'true':'false');
       aBtn.classList.toggle('playing',on);
-      aBtn.setAttribute('aria-label',on?'Matikan suara suasana alam':'Nyalakan suara suasana alam');
-      aBtn.title=on?'Matikan suara alam':'Nyalakan suara alam';
+      setAudioLabel();
     });
   }
 
   /* ---------- menu HP ---------- */
   var mBtn=$('#menuBtn'),mNav=$('#navLinks');
-  function menu(o){mNav.classList.toggle('open',o);mBtn.setAttribute('aria-expanded',o?'true':'false');mBtn.setAttribute('aria-label',o?'Tutup menu':'Buka menu');}
+  if(mBtn)mBtn.setAttribute('aria-label',(DICT[currentLang]||DICT.id).menu_open);
+  function menu(o){mNav.classList.toggle('open',o);mBtn.setAttribute('aria-expanded',o?'true':'false');var d=DICT[currentLang]||DICT.id;mBtn.setAttribute('aria-label',o?d.menu_close:d.menu_open);}
   mBtn.addEventListener('click',function(e){e.stopPropagation();menu(!mNav.classList.contains('open'));});
   document.addEventListener('click',function(e){if(!mNav.contains(e.target))menu(false);});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&mNav.classList.contains('open')){menu(false);mBtn.focus();}});
@@ -547,12 +628,24 @@
   railSecs.forEach(function(s,i){
     var a=document.createElement('a');
     a.href='#'+s.id;
-    a.setAttribute('aria-label',s.dataset.label+', '+(s.dataset.sl||''));
     var sc=s.dataset.scene,col=ICON_COLOR[sc]||'#FDB773',nx=railSecs[i+1];
     a.style.setProperty('--ic',col);if(nx)a.style.setProperty('--ic2',ICON_COLOR[nx.dataset.scene]||col);
-    a.innerHTML=ICON[sc]+(nx?'<span class="rail-seg"><i></i></span>':'')+'<span class="rail-tip"><time>'+hhmm(HOUR[sc])+'</time><span><em>'+(s.dataset.sl||sc)+'</em><b>'+s.dataset.label+'</b></span></span>';
+    a.innerHTML=ICON[sc]+(nx?'<span class="rail-seg"><i></i></span>':'')+'<span class="rail-tip"><time>'+hhmm(HOUR[sc])+'</time><span><em></em><b></b></span></span>';
     rail.appendChild(a);
   });
+  /* rail labels: section name from the dictionary, scene name from SCENE_NAMES */
+  function updateRail(){
+    if(!railSecs||!rail)return;
+    var d=DICT[currentLang]||DICT.id,names=SCENE_NAMES[currentLang]||SCENE_NAMES.id;
+    railSecs.forEach(function(s,i){
+      var a=rail.children[i];if(!a)return;
+      var label=d[s.dataset.labelKey]||s.dataset.label||'',scene=names[s.dataset.scene]||s.dataset.sl||'';
+      a.querySelector('.rail-tip em').textContent=scene;
+      a.querySelector('.rail-tip b').textContent=label;
+      a.setAttribute('aria-label',label+', '+scene);
+    });
+  }
+  updateRail();
   var dots=[].slice.call(rail.children),segs=dots.map(function(d){return d.querySelector('.rail-seg i');}),railTop=[],railOn=-1,peekT=null;
   /* ruas garis rail terisi sebanding posisi gulir di antara dua suasana */
   function railFill(){

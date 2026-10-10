@@ -1,20 +1,22 @@
 /**
- * utils/formatters.ts - Utilitas Format Data Standar Indonesia
+ * utils/formatters.ts - Number and time formatting in the active UI language.
  */
 
-export function formatNumber(num?: number | null): string {
+import type { Language } from "./translations";
+
+export function formatNumber(num?: number | null, lang: Language = "en"): string {
   if (num === null || num === undefined || isNaN(num)) return "-";
-  return Number(num).toLocaleString("id-ID");
+  return Number(num).toLocaleString(lang === "id" ? "id-ID" : "en-US");
 }
 
-export function formatCompactRange(min?: number, median?: number, max?: number): string {
+export function formatCompactRange(min?: number, median?: number, max?: number, lang: Language = "en"): string {
   if (min === undefined || median === undefined || max === undefined) {
     return "- / - / -";
   }
-  return `${formatNumber(min)} / ${formatNumber(median)} / ${formatNumber(max)}`;
+  return `${formatNumber(min, lang)} / ${formatNumber(median, lang)} / ${formatNumber(max, lang)}`;
 }
 
-export function formatHour(hour: number): string {
+export function formatHour(hour: number, lang: Language = "en"): string {
   const h = String(hour).padStart(2, "0");
-  return `T + ${h}:00 Jam`;
+  return lang === "id" ? `T + ${h}:00 jam` : `T + ${h}:00 h`;
 }

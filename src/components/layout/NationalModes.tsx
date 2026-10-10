@@ -13,6 +13,7 @@ import { api } from "../../services/api";
 import type { HeatmapResponse, SmokePathsResponse, WindFieldResponse } from "../../types/api";
 import { WindLeafletLayer, WIND_SPEED_BINS } from "../../simulation/windLayer";
 import { HeatLeafletLayer, HEAT_STOPS } from "../../simulation/heatLayer";
+import { pathName } from "../../utils/apiLabels";
 
 export type NationalMode = "off" | "history" | "now" | "forecast";
 type Level = "10m" | "850hPa";
@@ -149,11 +150,11 @@ export const NationalModes: React.FC<NationalModesProps> = ({ map, lang, onModeC
         const color = PATH_COLORS[p.source_type];
         L.polyline(p.coords, { color, weight: 2.2, opacity: 0.9, dashArray: "6 6", interactive: false }).addTo(group);
         L.circleMarker(p.coords[0], { radius: 4, color: "#0f172a", weight: 1, fillColor: color, fillOpacity: 1 })
-          .bindTooltip(textNode(p.name), { direction: "top" })
+          .bindTooltip(textNode(pathName(p.name, lang)), { direction: "top" })
           .addTo(group);
         for (let h = every; h < p.coords.length; h += every) {
           L.circleMarker(p.coords[h], { radius: 3, color, weight: 1.5, fillColor: "#0f172a", fillOpacity: 0.9 })
-            .bindTooltip(textNode(`${p.name} · +${h} h`), { direction: "top" })
+            .bindTooltip(textNode(`${pathName(p.name, lang)} · +${h} ${lang === "id" ? "jam" : "h"}`), { direction: "top" })
             .addTo(group);
         }
       }
@@ -161,7 +162,7 @@ export const NationalModes: React.FC<NationalModesProps> = ({ map, lang, onModeC
     } else {
       group.remove();
     }
-  }, [map, mode, wind, paths, windOn]);
+  }, [map, mode, wind, paths, windOn, lang]);
 
   useEffect(() => {
     windLayerRef.current?.setTime(timeIdx);
@@ -253,7 +254,7 @@ export const NationalModes: React.FC<NationalModesProps> = ({ map, lang, onModeC
               <strong className="text-white">{id ? "Histori titik api, 7 hari terakhir" : "Fire history, last 7 days"}</strong>
               {heatLegend}
               <p className="text-slate-300">
-                {sumDetections(heat).toLocaleString()} {id ? "deteksi satelit di" : "satellite detections in"} {heat.cells.length} {id ? "sel 0,25°" : "0.25° cells"}, {heat.window_start} – {heat.as_of}.
+                {sumDetections(heat).toLocaleString(id ? "id-ID" : "en-US")} {id ? "deteksi satelit di" : "satellite detections in"} {heat.cells.length} {id ? "sel 0,25°" : "0.25° cells"}, {heat.window_start} – {heat.as_of}.
               </p>
               <p className="text-slate-400 text-[10px]">NASA FIRMS VIIRS/MODIS · {id ? "data per" : "data as of"} {heat.as_of}</p>
             </div>
@@ -271,7 +272,7 @@ export const NationalModes: React.FC<NationalModesProps> = ({ map, lang, onModeC
                 <>
                   {heatLegend}
                   <p className="text-slate-300">
-                    {sumDetections(heat).toLocaleString()} {id ? "titik api terdeteksi pada" : "fire detections on"} {heat.as_of}
+                    {sumDetections(heat).toLocaleString(id ? "id-ID" : "en-US")} {id ? "titik api terdeteksi pada" : "fire detections on"} {heat.as_of}
                     {id ? " (hari deteksi terbaru)" : " (latest detection day)"}.
                   </p>
                 </>
@@ -299,7 +300,7 @@ export const NationalModes: React.FC<NationalModesProps> = ({ map, lang, onModeC
               <label className="flex flex-col gap-1">
                 <span className="flex justify-between gap-2 font-mono text-[10.5px]">
                   <span>{formatWib(times[timeIdx], lang)}</span>
-                  <span className="text-slate-400">+{leadH} h</span>
+                  <span className="text-slate-400">+{leadH} {id ? "jam" : "h"}</span>
                 </span>
                 <input
                   type="range"
@@ -308,7 +309,7 @@ export const NationalModes: React.FC<NationalModesProps> = ({ map, lang, onModeC
                   step={1}
                   value={timeIdx}
                   onChange={(e) => setTimeIdx(Number(e.target.value))}
-                  aria-valuetext={`${formatWib(times[timeIdx], lang)}, +${leadH} h`}
+                  aria-valuetext={`${formatWib(times[timeIdx], lang)}, +${leadH} ${id ? "jam" : "h"}`}
                   className="w-full accent-sky-400"
                 />
               </label>
@@ -319,7 +320,7 @@ export const NationalModes: React.FC<NationalModesProps> = ({ map, lang, onModeC
                 <p className="flex items-center gap-3 text-[10.5px]">
                   <span className="flex items-center gap-1"><i className="inline-block w-4 border-t-2 border-dashed" style={{ borderColor: PATH_COLORS.fire }} />{id ? "Asap kebakaran" : "Fire smoke"}</span>
                   <span className="flex items-center gap-1"><i className="inline-block w-4 border-t-2 border-dashed" style={{ borderColor: PATH_COLORS.volcano }} />{id ? "Abu gunung api" : "Volcanic ash"}</span>
-                  <span className="text-slate-400">● +24/48/72 h</span>
+                  <span className="text-slate-400">● +24/48/72 {id ? "jam" : "h"}</span>
                 </p>
               )}
 

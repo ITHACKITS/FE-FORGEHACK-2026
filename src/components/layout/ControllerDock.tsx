@@ -4,6 +4,7 @@ import type { HazardType, ModelingMode, SimulationOverrides } from "../../types/
 import { api } from "../../services/api";
 import { CONFIG } from "../../config/constants";
 import { useLanguage } from "../../context/useLanguage";
+import { forestName, forestRisk, forestType, provinceName, regionName, volcanoLevel, volcanoName } from "../../utils/apiLabels";
 
 interface ControllerDockProps {
   hazard: HazardType;
@@ -159,14 +160,14 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                   Object.entries(volcanoGroups).map(([reg, list]) => {
                     if (list.length === 0) return null;
                     return (
-                      <optgroup key={reg} label={`Volcanoes ${reg} (${list.length})`} className="bg-slate-900 text-white">
+                      <optgroup key={reg} label={`${lang === "id" ? "Gunung api" : "Volcanoes"} · ${regionName(reg, lang)} (${list.length})`} className="bg-slate-900 text-white">
                         {list.map((f) => {
                           const p = f.properties || f;
                           const id = p.event_id || p.id;
-                          const lvlName = p.level_name ? p.level_name.split(' ')[0] + ' ' + (p.level_name.split(' ')[1] || '') : `Level ${p.level || 1}`;
+                          const elevation = Math.round(p.elevation_m || 0).toLocaleString(lang === "id" ? "id-ID" : "en-US");
                           return (
                             <option key={id} value={id}>
-                              {`[${lvlName}] Mt. ${p.name} (${p.province}) - ${p.elevation_m}m`}
+                              {`[${volcanoLevel(p.level, lang)}] ${volcanoName(p.name, lang)} (${provinceName(p.province, lang)}) · ${elevation} m`}
                             </option>
                           );
                         })}
@@ -174,15 +175,21 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                     );
                   })
                 ) : (
-                  <optgroup label="Active PVMBG Volcanoes" className="bg-slate-900 text-white">
-                    <option value="anak_krakatau_2026_09">[Level III] Mt. Anak Krakatau (Sunda Strait)</option>
-                    <option value="merapi_yogyakarta">[Level III] Mt. Merapi (Central Java / DIY)</option>
-                    <option value="lewotobi_laki_laki">[Level IV] Mt. Lewotobi Laki-laki (NTT)</option>
-                    <option value="marapi_sumatera">[Level III] Mt. Marapi (West Sumatra)</option>
-                    <option value="semeru">[Level III] Mt. Semeru (East Java)</option>
-                    <option value="agung">[Level II] Mt. Agung (Bali)</option>
-                    <option value="rinjani">[Level II] Mt. Rinjani (Lombok, NTB)</option>
-                    <option value="sinabung">[Level II] Mt. Sinabung (North Sumatra)</option>
+                  <optgroup label={lang === "id" ? "Gunung api aktif PVMBG" : "Active PVMBG volcanoes"} className="bg-slate-900 text-white">
+                    {([
+                      ["anak_krakatau_2026_09", 3, "Anak Krakatau", "Sunda Strait", "Selat Sunda"],
+                      ["merapi_yogyakarta", 3, "Merapi", "Central Java / DIY", "Jawa Tengah / DIY"],
+                      ["lewotobi_laki_laki", 4, "Lewotobi Laki-laki", "East Nusa Tenggara", "NTT"],
+                      ["marapi_sumatera", 3, "Marapi", "West Sumatra", "Sumatera Barat"],
+                      ["semeru", 3, "Semeru", "East Java", "Jawa Timur"],
+                      ["agung", 2, "Agung", "Bali", "Bali"],
+                      ["rinjani", 2, "Rinjani", "Lombok, West Nusa Tenggara", "Lombok, NTB"],
+                      ["sinabung", 2, "Sinabung", "North Sumatra", "Sumatera Utara"]
+                    ] as const).map(([value, level, name, areaEn, areaId]) => (
+                      <option key={value} value={value}>
+                        {`[${volcanoLevel(level, lang)}] ${volcanoName(`G. ${name}`, lang)} (${lang === "id" ? areaId : areaEn})`}
+                      </option>
+                    ))}
                   </optgroup>
                 )
               ) : (
@@ -190,20 +197,20 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                   Object.entries(forestGroups).map(([reg, list]) => {
                     if (list.length === 0) return null;
                     return (
-                      <optgroup key={reg} label={`Peatland Regions ${reg} (${list.length})`} className="bg-slate-900 text-white">
+                      <optgroup key={reg} label={`${lang === "id" ? "Hutan rawan api" : "Fire-prone forests"} · ${regionName(reg, lang)} (${list.length})`} className="bg-slate-900 text-white">
                         {list.map((k) => (
                           <option key={k.id} value={k.id}>
-                            {`[${k.risk_level || 'High Risk'}] ${k.name} - ${k.forest_type}`}
+                            {`[${forestRisk(k.risk_level, lang)}] ${forestName(k.name, lang)} · ${forestType(k.forest_type, lang)}`}
                           </option>
                         ))}
                       </optgroup>
                     );
                   })
                 ) : (
-                  <optgroup label="Peatland Wildfire Regions" className="bg-slate-900 text-white">
-                    <option value="hutan_sebangau">[Critical] Sebangau National Park - Tropical Peat Swamp</option>
-                    <option value="hutan_eks_plg">[Critical] Ex-PLG Peatland Region - Critical Peat</option>
-                    <option value="live_kalimantan">Kalimantan Peatland Fires (NASA FIRMS Live)</option>
+                  <optgroup label={lang === "id" ? "Wilayah kebakaran gambut" : "Peatland wildfire regions"} className="bg-slate-900 text-white">
+                    <option value="hutan_sebangau">{lang === "id" ? "[Sangat Rawan] Taman Nasional Sebangau · Rawa gambut tropis" : "[Very high risk] Sebangau National Park · Tropical peat swamp"}</option>
+                    <option value="hutan_eks_plg">{lang === "id" ? "[Sangat Rawan] Lahan Gambut Eks-PLG · Gambut kritis" : "[Very high risk] Ex-PLG Peatland · Critical peat"}</option>
+                    <option value="live_kalimantan">{lang === "id" ? "Kebakaran gambut Kalimantan (NASA FIRMS langsung)" : "Kalimantan peatland fires (NASA FIRMS live)"}</option>
                   </optgroup>
                 )
               )}
