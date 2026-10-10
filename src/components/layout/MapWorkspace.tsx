@@ -13,6 +13,8 @@ import { SmokeLeafletLayer } from "../../simulation/smokeLeafletLayer";
 import { EXPOSURE_TIER_COLORS } from "../../simulation/smokeExposureRenderer";
 import { clearSmoke3D, syncSmoke3D } from "../../simulation/smoke3d";
 import { NationalModes, type NationalMode } from "./NationalModes";
+import { CameraReadout, ScaleBar } from "./MapReadouts";
+import { NearbyLayers, type NearbyStats, type VolcanoFeature, type Forest } from "../../simulation/nearbyLayers";
 
 interface MapWorkspaceProps {
   hazard: HazardType;
@@ -47,9 +49,13 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const labelsTileLayerRef = useRef<L.TileLayer | null>(null);
 
   const [showVolcanoes, setShowVolcanoes] = useState(true);
+  const [showForests, setShowForests] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
+  const [showAshPaths, setShowAshPaths] = useState(true);
+  const [nearbyStats, setNearbyStats] = useState<NearbyStats | null>(null);
   const [showPlume, setShowPlume] = useState(true);
-  const [showAirports, setShowAirports] = useState(true);
+  // Airports start hidden so the hazard layers read clearly; users can switch them on.
+  const [showAirports, setShowAirports] = useState(false);
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
   const [showSmoke, setShowSmoke] = useState(true);
   // Nationwide wind/heatmap modes; the example smoke sim hides while one is on.
@@ -71,20 +77,14 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const [is3DLoading, setIs3DLoading] = useState(false);
   const [map3DError, setMap3DError] = useState<string | null>(null);
 
-  // Camera Telemetry State (Matching Google Earth Status Bar in Image 2)
-  const [mapTelemetry, setMapTelemetry] = useState<{ lat: number; lng: number; zoom: number }>({
-    lat: CONFIG.DEFAULT_MAP_VIEW.lat,
-    lng: CONFIG.DEFAULT_MAP_VIEW.lng,
-    zoom: CONFIG.DEFAULT_MAP_VIEW.zoom
-  });
-
   // Mouse Drag with Shift key for 3D Tilt & Rotate
   const isDragging3D = useRef(false);
   const startMousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const startTiltHeading = useRef<{ tilt: number; heading: number }>({ tilt: 0, heading: 0 });
 
-  const volcanoesLayerRef = useRef<L.GeoJSON | null>(null);
-  const hotspotsLayerRef = useRef<L.GeoJSON | null>(null);
+  const nearbyRef = useRef<NearbyLayers | null>(null);
+  const onSelectEventRef = useRef(onSelectEvent);
+  onSelectEventRef.current = onSelectEvent;
   const airportsLayerRef = useRef<L.GeoJSON | null>(null);
   const plumeLayerRef = useRef<L.GeoJSON | null>(null);
   const krbCircleRef = useRef<L.Circle | null>(null);
@@ -372,7 +372,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       zoom: cfg.zoom,
       minZoom: cfg.minZoom,
       maxZoom: cfg.maxZoom,
-      zoomControl: false
+      zoomControl: false,
+      // Vector layers (coastline, plume tiers) on one canvas instead of many SVG nodes.
+      preferCanvas: true
     });
 
     // The basemap itself is applied by the mapStyle effect below.
@@ -380,18 +382,17 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     setMapInstance(map);
     smokeLayerRef.current = new SmokeLeafletLayer(map);
 
-    const updateTelemetry = () => {
-      const center = map.getCenter();
-      setMapTelemetry({
-        lat: center.lat,
-        lng: center.lng,
-        zoom: map.getZoom()
-      });
-    };
-
-    map.on("move", updateTelemetry);
-    map.on("zoomend", updateTelemetry);
-    updateTelemetry();
+    // Volcanoes, forests, hotspots and ash paths are drawn only near the map centre.
+    nearbyRef.current = new NearbyLayers(map, {
+      onSelectVolcano: (f) => {
+        const [lng, lat] = f.geometry.coordinates;
+        const p = f.properties;
+        highlightKrb(map, lat, lng, p.radius_bahaya_km);
+        onSelectEventRef.current(p.event_id || p.id, lat, lng, p.radius_bahaya_km);
+      },
+      onSelectForest: (f) => onSelectEventRef.current(f.id, f.lat, f.lon, 0),
+      onStats: setNearbyStats
+    });
 
     api.getCoastline()
       .then((geo) => {
@@ -401,14 +402,15 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       })
       .catch(() => {});
 
-    loadVolcanoes(map);
+    loadVolcanoes();
     loadForests();
-    loadHotspots(map);
+    loadHotspots();
+    loadAshPaths();
     loadFacilities(map);
 
     return () => {
-      map.off("move", updateTelemetry);
-      map.off("zoomend", updateTelemetry);
+      nearbyRef.current?.destroy();
+      nearbyRef.current = null;
       smokeLayerRef.current?.destroy();
       smokeLayerRef.current = null;
       map.remove();
@@ -454,14 +456,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     applyBasemap(mapRef.current, mapStyle === "exposure" ? "paper" : "satellite");
     smokeLayerRef.current?.setStyle(mapStyle === "exposure" ? "exposure" : "puffs");
   }, [mapStyle]);
-
-  // Scale bar for the exposure map: a round distance that spans roughly 70-130 px.
-  const scaleBar = useMemo(() => {
-    const mpp = (40_075_016.686 * Math.cos((mapTelemetry.lat * Math.PI) / 180)) / (256 * Math.pow(2, mapTelemetry.zoom));
-    const steps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
-    const km = steps.filter((k) => (k * 1000) / mpp <= 130).pop() ?? 1;
-    return { km, px: Math.round((km * 1000) / mpp) };
-  }, [mapTelemetry.lat, mapTelemetry.zoom]);
 
   useEffect(() => {
     smokeLayerRef.current?.setTargetHour(currentHour);
@@ -510,17 +504,19 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
   const prevEventIdRef = useRef<string>(eventId);
 
+  // The national "Forecast" frame already draws every smoke/ash path, so hide the nearby ones then.
   useEffect(() => {
-    if (!mapRef.current) return;
-    if (showVolcanoes) volcanoesLayerRef.current?.addTo(mapRef.current);
-    else volcanoesLayerRef.current?.remove();
-  }, [showVolcanoes]);
+    nearbyRef.current?.setVisibility({
+      volcanoes: showVolcanoes,
+      forests: showForests,
+      hotspots: showHotspots,
+      ashPaths: showAshPaths && nationalMode !== "forecast"
+    });
+  }, [showVolcanoes, showForests, showHotspots, showAshPaths, nationalMode]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
-    if (showHotspots) hotspotsLayerRef.current?.addTo(mapRef.current);
-    else hotspotsLayerRef.current?.remove();
-  }, [showHotspots]);
+    nearbyRef.current?.setSelected(eventId);
+  }, [eventId]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -545,7 +541,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             mapRef.current.removeLayer(krbCircleRef.current);
             krbCircleRef.current = null;
           }
-          loadHotspots(mapRef.current, eventId);
+          loadHotspots(eventId);
         } else {
           const feat = (volcanoesDataRef.current || []).find(
             (f: any) => (f.properties?.event_id || f.properties?.id || f.id) === eventId
@@ -559,6 +555,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             mapRef.current.flyTo([target[0], target[1]], target[2], { duration: 1.0 });
             highlightKrb(mapRef.current, target[0], target[1], 5.0);
           }
+          loadHotspots();
         }
       }
     }
@@ -569,97 +566,44 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const loadForests = async () => {
     try {
       const forests = await api.getNationalForests();
-      const list = Array.isArray(forests) ? forests : (forests?.forests || []);
+      const list: Forest[] = Array.isArray(forests) ? forests : (forests?.forests || []);
       forestsDataRef.current = list;
+      nearbyRef.current?.setForests(list);
     } catch {
       // Offline fallback
     }
   };
 
-  const loadVolcanoes = async (map: L.Map) => {
+  const loadVolcanoes = async () => {
     try {
       const geo = await api.getNationalVolcanoes();
-      const features = geo.features || [];
+      const features: VolcanoFeature[] = geo.features || [];
       volcanoesDataRef.current = features;
-
-      if (volcanoesLayerRef.current) map.removeLayer(volcanoesLayerRef.current);
-
-      volcanoesLayerRef.current = L.geoJSON({ type: "FeatureCollection", features } as any, {
-        pointToLayer: (feature: any, latlng) => {
-          const p = feature.properties;
-          let imageSrc = "/1_normal.png";
-          if (p.level === 2) imageSrc = "/2_waspada.png";
-          else if (p.level === 3) imageSrc = "/3_siaga.png";
-          else if (p.level === 4) imageSrc = "/4_awas.png";
-
-          const isHighAlert = p.level >= 3;
-          const pulseHtml = isHighAlert
-            ? `<span class="volcano-pulse-ring ${p.level === 4 ? 'ring-red' : 'ring-orange'}"></span>`
-            : "";
-
-          const icon = L.divIcon({
-            className: "volcano-div-icon",
-            html: `
-              <div class="relative flex items-center justify-center">
-                ${pulseHtml}
-                <img src="${imageSrc}" class="w-6 h-6 object-contain drop-shadow-md z-10 relative" style="transform: translateY(-2px);" />
-              </div>
-            `,
-            iconSize: [24, 24],
-            iconAnchor: [12, 24],
-            popupAnchor: [0, -24]
-          });
-
-          return L.marker(latlng, { icon });
-        },
-        onEachFeature: (feature: any, layer) => {
-          const p = feature.properties;
-          const coords = feature.geometry.coordinates;
-
-          layer.bindTooltip(`<strong>${p.name}</strong><br><span style="color:${p.color}">${p.level_name}</span>`, {
-            direction: "top",
-            offset: [0, -10]
-          });
-
-          layer.on("click", () => {
-            highlightKrb(map, coords[1], coords[0], p.radius_bahaya_km);
-            onSelectEvent(p.event_id || p.id, coords[1], coords[0], p.radius_bahaya_km);
-          });
-        }
-      }).addTo(map);
+      nearbyRef.current?.setVolcanoes(features);
     } catch {
       // Offline fallback
     }
   };
 
-  const loadHotspots = async (map: L.Map, targetEventId?: string) => {
+  // National hotspots, or one fire event's hotspots while that event is selected.
+  const hotspotsKeyRef = useRef<string | null>(null);
+  const loadHotspots = async (targetEventId = "national") => {
+    if (hotspotsKeyRef.current === targetEventId) return;
+    hotspotsKeyRef.current = targetEventId;
     try {
-      const target = targetEventId || (hazard === "fire" ? eventId : "national");
-      const geo = await api.getHotspots(target);
-      const features = geo.features || [];
-
-      if (hotspotsLayerRef.current) map.removeLayer(hotspotsLayerRef.current);
-
-      hotspotsLayerRef.current = L.geoJSON({ type: "FeatureCollection", features } as any, {
-        pointToLayer: (_feature: any, latlng) => {
-          const icon = L.divIcon({
-            className: "hotspot-icon",
-            html: `<img src="/titik_api.png" class="w-5 h-5 object-contain drop-shadow-md" />`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          });
-          return L.marker(latlng, { icon });
-        },
-        onEachFeature: (feature: any, layer) => {
-          const p = feature.properties;
-          layer.bindTooltip(
-            `🔥 <strong>Titik Api VIIRS</strong><br>Daya Panas (FRP): ${p.frp || '-'} MW`,
-            { direction: "top" }
-          );
-        }
-      }).addTo(map);
+      const geo = await api.getHotspots(targetEventId);
+      if (hotspotsKeyRef.current === targetEventId) nearbyRef.current?.setHotspots(geo.features || []);
     } catch {
-      // Offline fallback
+      hotspotsKeyRef.current = null;
+    }
+  };
+
+  const loadAshPaths = async () => {
+    try {
+      const res = await api.getSmokePaths(72);
+      if (res.available) nearbyRef.current?.setAshPaths(res.paths, res.marks_every_h ?? 24);
+    } catch {
+      // Offline fallback: no ash paths
     }
   };
 
@@ -754,9 +698,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const transformString = isTilted
     ? `perspective(1200px) rotateX(${tilt}deg) rotateZ(${heading}deg) scale(${perspectiveScale}) translateY(${perspectiveTranslateY}%)`
     : undefined;
-
-  // Estimated altitude telemetry formula for Google Earth status bar
-  const cameraAltitudeMeters = Math.round(25000000 / Math.pow(2, mapTelemetry.zoom));
 
   return (
     <div className="relative w-full h-full overflow-hidden map-viewport-3d bg-[#050a14] select-none">
@@ -888,15 +829,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         </div>
       )}
 
-      {/* 4. Telemetry Camera & Coordinates Status Line (Gambar 2 Bottom Right) */}
-      <div className="absolute bottom-2 right-4 z-[500] hidden sm:flex items-center gap-3 text-[10px] font-mono text-slate-300/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-        <span>Camera: {cameraAltitudeMeters.toLocaleString()} m</span>
-        <span className="text-white/30">&bull;</span>
-        <span>
-          {Math.abs(mapTelemetry.lat).toFixed(4)}°{mapTelemetry.lat >= 0 ? "N" : "S"}{" "}
-          {Math.abs(mapTelemetry.lng).toFixed(4)}°{mapTelemetry.lng >= 0 ? "E" : "W"}
-        </span>
-      </div>
+      {/* 4. Camera and coordinates readout */}
+      <CameraReadout map={mapInstance} />
 
       {/* 5. Panel Lapisan Spasial Aktif (Kiri Bawah) */}
       {!isLayerPanelOpen ? (
@@ -926,11 +860,23 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             <img src="/1_normal.png" className="w-4 h-4 object-contain" />
             <span>{lang === "id" ? "Gunung Api PVMBG" : "PVMBG Volcanoes"}</span>
           </label>
+
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showForests} onChange={(e) => setShowForests(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
+            <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#14532d" stroke="#bbf7d0" strokeWidth="1.5" /><path d="M12 4.5l4.5 6.2h-2.4l3.4 4.6H13v3.2h-2v-3.2H6.5l3.4-4.6H7.5z" fill="#bbf7d0" /></svg>
+            <span>{lang === "id" ? "Hutan rawan api" : "Fire-prone forests"}</span>
+          </label>
           
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showHotspots} onChange={(e) => setShowHotspots(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/titik_api.png" className="w-4 h-4 object-contain" />
             <span>{lang === "id" ? "Titik Panas NASA FIRMS" : "NASA FIRMS Hotspots"}</span>
+          </label>
+
+          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
+            <input type="checkbox" checked={showAshPaths} onChange={(e) => setShowAshPaths(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
+            <i className="inline-block w-4 border-t-2 border-dashed shrink-0" style={{ borderColor: "#c4b5fd" }} aria-hidden="true" />
+            <span>{lang === "id" ? "Jalur abu erupsi (72 jam)" : "Eruption ash paths (72 h)"}</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
@@ -953,6 +899,14 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             <img src="/plane.png" className="w-4 h-4 object-contain" />
             <span>{lang === "id" ? "Bandara Udara" : "Airports"}</span>
           </label>
+
+          {nearbyStats && (
+            <p className="pt-2 mt-0.5 border-t border-white/10 text-[10px] leading-snug text-slate-300 max-w-[240px]" role="status">
+              {lang === "id"
+                ? `Ditampilkan dalam radius ${nearbyStats.radiusKm} km dari tengah peta: ${nearbyStats.volcanoes} gunung, ${nearbyStats.forests} hutan, ${nearbyStats.hotspots.toLocaleString()} titik api, ${nearbyStats.ashPaths} jalur abu. Gunung Level III–IV selalu tampil.`
+                : `Showing within ${nearbyStats.radiusKm} km of the map centre: ${nearbyStats.volcanoes} volcanoes, ${nearbyStats.forests} forests, ${nearbyStats.hotspots.toLocaleString()} hotspots, ${nearbyStats.ashPaths} ash paths. Level III–IV volcanoes always show.`}
+            </p>
+          )}
         </div>
       )}
 
@@ -1029,18 +983,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       {/* Map style switch, plus scale bar and north arrow on the exposure map */}
       <div className="absolute bottom-44 right-2 sm:bottom-[5.5rem] sm:right-4 z-[500] flex flex-col items-end gap-2">
         <NationalModes map={mapInstance} lang={lang} onModeChange={setNationalMode} />
-        {mapStyle === "exposure" && (
-          <div className="hidden sm:flex items-end gap-3 px-2.5 py-1.5 rounded-xl bg-[#F6F0E2]/90 border border-[#16302A]/15 text-[#16302A] font-mono text-[10.5px] shadow-md" aria-hidden="true">
-            <div className="flex flex-col items-start gap-0.5">
-              <span>{scaleBar.km} km</span>
-              <span className="block h-[3px] bg-[#16302A]" style={{ width: scaleBar.px }} />
-            </div>
-            <div className="flex flex-col items-center leading-none">
-              <svg width="12" height="16" viewBox="-6 -12 12 16"><path d="M0 -12L5 4L0 0L-5 4Z" fill="#16302A" /></svg>
-              <span className="mt-0.5">{lang === "id" ? "U" : "N"}</span>
-            </div>
-          </div>
-        )}
+        {mapStyle === "exposure" && <ScaleBar map={mapInstance} lang={lang} />}
         <div className="flex rounded-full p-0.5 aurora-glass-card border border-white/20 shadow-2xl" role="group" aria-label={lang === "id" ? "Gaya peta" : "Map style"}>
           {([
             ["exposure", MapIcon, lang === "id" ? "Paparan" : "Exposure"],

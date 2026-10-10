@@ -17,6 +17,7 @@ const DEG = Math.PI / 180;
 const FLOW_SECONDS = 1500;      // how far (in wind-seconds) a puff drifts per flow cycle
 const FLOW_PERIOD_MS = 2600;    // real time for one flow cycle
 const SPRITE_PX = 64;
+const FRAME_MS = 32;            // ~30 fps animation cap
 
 type RGB = [number, number, number];
 
@@ -130,6 +131,11 @@ export class SmokeLeafletLayer {
   }
 
   private loop = (now: number) => {
+    // Cap at ~30 fps: the drift is slow, so 60 fps only doubles the CPU cost.
+    if (now - this.lastFrame < FRAME_MS) {
+      this.raf = requestAnimationFrame(this.loop);
+      return;
+    }
     const dt = Math.min(0.1, (now - this.lastFrame) / 1000);
     this.lastFrame = now;
     if (this.engine) {
