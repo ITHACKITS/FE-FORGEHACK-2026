@@ -12,9 +12,7 @@ import type {
   SimulationOverrides,
   SimulationPayload,
   ImpactResponse,
-  FacilitiesImpactResponse,
-  ValidationResponse,
-  SchoolItem
+  ValidationResponse
 } from "./types/api";
 
 export const App: React.FC = () => {
@@ -33,19 +31,12 @@ export const App: React.FC = () => {
   const [hourlyTiersCache, setHourlyTiersCache] = useState<Record<string | number, any> | null>(null);
 
   const [impactData, setImpactData] = useState<ImpactResponse | null>(null);
-  const [facilitiesData, setFacilitiesData] = useState<FacilitiesImpactResponse | null>(null);
   const [validationData, setValidationData] = useState<ValidationResponse | null>(null);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [progressText, setProgressText] = useState<string>("");
-
-  const [evacuationRoute, setEvacuationRoute] = useState<{
-    origin: [number, number];
-    dest: [number, number];
-    label: string;
-  } | null>(null);
 
   const [resetViewTrigger, setResetViewTrigger] = useState<number>(0);
 
@@ -127,9 +118,8 @@ export const App: React.FC = () => {
       // Set pratinjau jam ke 12 agar poligon sebaran langsung terlihat di peta (sesuai fe-dummy)
       setCurrentHour(12);
 
-      const [impact, facilities, validation, tier12] = await Promise.all([
+      const [impact, validation, tier12] = await Promise.all([
         api.getImpact(runId).catch(() => null),
-        api.getFacilitiesImpacted(runId).catch(() => null),
         api.getValidation(activeEventId).catch(() => null),
         api.getTiersAtHour(runId, 12).catch(() => null)
       ]);
@@ -139,7 +129,6 @@ export const App: React.FC = () => {
       }
 
       setImpactData(impact);
-      setFacilitiesData(facilities);
       setValidationData(validation);
       setIsDrawerOpen(true);
       setProgressText(`Selesai: ${simRes.scenario_label || "15 anggota ensemble"}`);
@@ -187,22 +176,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleDrawRoute = (s: SchoolItem) => {
-    const sLat = s.lat ?? s.latitude;
-    const sLng = s.lng ?? s.longitude;
-    if (sLat === undefined || sLng === undefined) return;
-
-    const hospital = s.nearest_safe_hospital || s.nearest_hospital;
-    const destLat = hospital?.lat ?? hospital?.latitude ?? sLat + 0.035;
-    const destLng = hospital?.lng ?? hospital?.longitude ?? sLng + 0.035;
-
-    setEvacuationRoute({
-      origin: [sLat, sLng],
-      dest: [destLat, destLng],
-      label: `Evakuasi Siswa: ${s.name} → ${hospital?.name || "RSUD Terdekat"}`
-    });
-  };
-
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#080c0e] text-slate-100 font-sans">
       {/* Zona A: Tactical Header */}
@@ -222,7 +195,6 @@ export const App: React.FC = () => {
           eventId={eventId}
           currentHour={currentHour}
           hourlyTiersCache={hourlyTiersCache}
-          evacuationRoute={evacuationRoute}
           onSelectEvent={(newId) => {
             setEventId(newId);
           }}
@@ -269,15 +241,9 @@ export const App: React.FC = () => {
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           impact={impactData}
-          facilities={facilitiesData}
           validation={validationData}
           hazard={hazard}
           rainMm={mode === "experiment" ? overrides.rain_scavenging_mm_h ?? 0 : 0}
-          onFlyTo={(lat, lng) => {
-            // Pemusatan peta melalui event / ref jika diperlukan
-            console.log("Fly to:", lat, lng);
-          }}
-          onDrawRoute={handleDrawRoute}
         />
 
         {/* Modal Legenda Otoritatif PVMBG & Dispersi */}

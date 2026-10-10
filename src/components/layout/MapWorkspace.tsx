@@ -12,13 +12,13 @@ import { buildSmokeScenario, windFromLabel } from "../../simulation/smokeScenari
 import { SmokeLeafletLayer } from "../../simulation/smokeLeafletLayer";
 import { EXPOSURE_TIER_COLORS } from "../../simulation/smokeExposureRenderer";
 import { clearSmoke3D, syncSmoke3D } from "../../simulation/smoke3d";
+import { NationalModes, type NationalMode } from "./NationalModes";
 
 interface MapWorkspaceProps {
   hazard: HazardType;
   eventId: string;
   currentHour: number;
   hourlyTiersCache: Record<string | number, any> | null;
-  evacuationRoute: { origin: [number, number]; dest: [number, number]; label: string } | null;
   onSelectEvent: (eventId: string, lat: number, lng: number, radiusKm: number) => void;
   resetViewTrigger: number;
   onToggleLegend?: () => void;
@@ -31,7 +31,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   eventId,
   currentHour,
   hourlyTiersCache,
-  evacuationRoute,
   onSelectEvent,
   resetViewTrigger,
   onToggleLegend: _onToggleLegend,
@@ -50,11 +49,12 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const [showVolcanoes, setShowVolcanoes] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
   const [showPlume, setShowPlume] = useState(true);
-  const [showSchools, setShowSchools] = useState(true);
-  const [showHospitals, setShowHospitals] = useState(true);
   const [showAirports, setShowAirports] = useState(true);
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
   const [showSmoke, setShowSmoke] = useState(true);
+  // Nationwide wind/heatmap modes; the example smoke sim hides while one is on.
+  const [nationalMode, setNationalMode] = useState<NationalMode>("off");
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
   // "exposure": landing-style paper map with a smoke-density grid; "satellite": Esri imagery.
   const [mapStyle, setMapStyle] = useState<"exposure" | "satellite">("exposure");
   const [smoke3DError, setSmoke3DError] = useState<string | null>(null);
@@ -85,12 +85,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
   const volcanoesLayerRef = useRef<L.GeoJSON | null>(null);
   const hotspotsLayerRef = useRef<L.GeoJSON | null>(null);
-  const schoolsLayerRef = useRef<L.GeoJSON | null>(null);
-  const hospitalsLayerRef = useRef<L.GeoJSON | null>(null);
   const airportsLayerRef = useRef<L.GeoJSON | null>(null);
   const plumeLayerRef = useRef<L.GeoJSON | null>(null);
   const krbCircleRef = useRef<L.Circle | null>(null);
-  const evacRouteLineRef = useRef<L.Polyline | null>(null);
   const userLocationMarkerRef = useRef<L.Marker | null>(null);
   const volcanoesDataRef = useRef<any[]>([]);
   const forestsDataRef = useRef<any[]>([]);
@@ -380,6 +377,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
     // The basemap itself is applied by the mapStyle effect below.
     mapRef.current = map;
+    setMapInstance(map);
     smokeLayerRef.current = new SmokeLeafletLayer(map);
 
     const updateTelemetry = () => {
@@ -415,6 +413,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       smokeLayerRef.current = null;
       map.remove();
       mapRef.current = null;
+      setMapInstance(null);
     };
   // Runs once: the Leaflet map is created on mount and torn down on unmount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -469,8 +468,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   }, [currentHour]);
 
   useEffect(() => {
-    smokeLayerRef.current?.setVisible(showSmoke && !is3DMode);
-  }, [showSmoke, is3DMode]);
+    smokeLayerRef.current?.setVisible(showSmoke && !is3DMode && nationalMode === "off");
+  }, [showSmoke, is3DMode, nationalMode]);
 
   useEffect(() => {
     const el = map3DElementRef.current;
@@ -522,18 +521,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     if (showHotspots) hotspotsLayerRef.current?.addTo(mapRef.current);
     else hotspotsLayerRef.current?.remove();
   }, [showHotspots]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    if (showSchools) schoolsLayerRef.current?.addTo(mapRef.current);
-    else schoolsLayerRef.current?.remove();
-  }, [showSchools]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    if (showHospitals) hospitalsLayerRef.current?.addTo(mapRef.current);
-    else hospitalsLayerRef.current?.remove();
-  }, [showHospitals]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -679,66 +666,29 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const loadFacilities = async (map: L.Map) => {
     try {
       const geo = await api.getFacilities();
-      const features = geo.features || [];
+      const airports = (geo.features || []).filter((f: any) => f.properties.facility_type === "airport");
 
-      if (schoolsLayerRef.current) map.removeLayer(schoolsLayerRef.current);
-      if (hospitalsLayerRef.current) map.removeLayer(hospitalsLayerRef.current);
       if (airportsLayerRef.current) map.removeLayer(airportsLayerRef.current);
-
-      const schools = features.filter((f: any) => f.properties.facility_type === "school");
-      const hospitals = features.filter((f: any) => f.properties.facility_type === "healthcare" || f.properties.facility_type === "hospital");
-      const airports = features.filter((f: any) => f.properties.facility_type === "airport");
-
-      schoolsLayerRef.current = L.geoJSON({ type: "FeatureCollection", features: schools } as any, {
-        pointToLayer: (_feature: any, latlng) => {
-          const icon = L.divIcon({
-            className: "fac-icon-school",
-            html: `<img src="/school.png" class="w-5 h-5 object-contain drop-shadow-sm" />`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          });
-          return L.marker(latlng, { icon });
-        },
-        onEachFeature: (feature: any, layer) => {
-          const p = feature.properties;
-          layer.bindPopup(`<div class="text-xs p-1 font-bold text-slate-800">${p.name || 'Sekolah'}</div>`);
-        }
-      });
-
-      hospitalsLayerRef.current = L.geoJSON({ type: "FeatureCollection", features: hospitals } as any, {
-        pointToLayer: (_feature: any, latlng) => {
-          const icon = L.divIcon({
-            className: "fac-icon-hospital",
-            html: `<img src="/hospital.png" class="w-5 h-5 object-contain drop-shadow-sm" />`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          });
-          return L.marker(latlng, { icon });
-        },
-        onEachFeature: (feature: any, layer) => {
-          const p = feature.properties;
-          layer.bindPopup(`<div class="text-xs p-1 font-bold text-slate-800">${p.name || 'Fasilitas Kesehatan'}</div>`);
-        }
-      });
 
       airportsLayerRef.current = L.geoJSON({ type: "FeatureCollection", features: airports } as any, {
         pointToLayer: (_feature: any, latlng) => {
           const icon = L.divIcon({
             className: "fac-icon-airport",
-            html: `<img src="/plane.png" class="w-5 h-5 object-contain drop-shadow-sm" />`,
+            html: `<img src="/plane.png" alt="" class="w-5 h-5 object-contain drop-shadow-sm" />`,
             iconSize: [20, 20],
             iconAnchor: [10, 10]
           });
           return L.marker(latlng, { icon });
         },
         onEachFeature: (feature: any, layer) => {
-          const p = feature.properties;
-          layer.bindPopup(`<div class="text-xs p-1 font-bold text-slate-800">${p.name || 'Bandara'}</div>`);
+          // Facility names come from the API, so render them as text, not HTML.
+          const popup = document.createElement("div");
+          popup.className = "text-xs p-1 font-bold text-slate-800";
+          popup.textContent = feature.properties.name || "Airport";
+          layer.bindPopup(popup);
         }
       });
 
-      if (showSchools) schoolsLayerRef.current.addTo(map);
-      if (showHospitals) hospitalsLayerRef.current.addTo(map);
       if (showAirports) airportsLayerRef.current.addTo(map);
     } catch {
       // Offline fallback
@@ -795,25 +745,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       }
     }).addTo(map);
   }, [currentHour, hourlyTiersCache, hazard, showPlume]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const map = mapRef.current;
-
-    if (evacRouteLineRef.current) map.removeLayer(evacRouteLineRef.current);
-
-    if (evacuationRoute) {
-      evacRouteLineRef.current = L.polyline([evacuationRoute.origin, evacuationRoute.dest], {
-        color: "#8AD6D1",
-        weight: 3,
-        dashArray: "6, 8",
-        opacity: 0.95
-      }).addTo(map);
-
-      evacRouteLineRef.current.bindTooltip(`🚑 ${evacuationRoute.label}`, { permanent: true, direction: "center" });
-      map.fitBounds(evacRouteLineRef.current.getBounds(), { padding: [60, 60], maxZoom: 13 });
-    }
-  }, [evacuationRoute]);
 
   // Calculate 3D perspective scale & translation to fill viewport seamlessly like Google Earth
   // (Only used when not in real Google Maps 3D mode)
@@ -900,7 +831,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       )}
 
       {/* 3b. Smoke simulation status: honest labelling for example data */}
-      {showSmoke && (
+      {showSmoke && nationalMode === "off" && (
         <div
           className="absolute top-36 sm:top-24 right-2 sm:right-4 z-[900] max-w-[min(340px,calc(100%-1rem))] rounded-2xl px-3 py-2 aurora-glass-card border border-white/15 shadow-2xl text-[11px] leading-snug text-slate-200"
           role="status"
@@ -1018,18 +949,6 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
-            <input type="checkbox" checked={showSchools} onChange={(e) => setShowSchools(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
-            <img src="/school.png" className="w-4 h-4 object-contain" />
-            <span>{lang === "id" ? "Fasilitas Sekolah" : "School Facilities"}</span>
-          </label>
-
-          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
-            <input type="checkbox" checked={showHospitals} onChange={(e) => setShowHospitals(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
-            <img src="/hospital.png" className="w-4 h-4 object-contain" />
-            <span>{lang === "id" ? "Fasilitas Kesehatan" : "Healthcare Facilities"}</span>
-          </label>
-
-          <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showAirports} onChange={(e) => setShowAirports(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/plane.png" className="w-4 h-4 object-contain" />
             <span>{lang === "id" ? "Bandara Udara" : "Airports"}</span>
@@ -1109,6 +1028,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
       {/* Map style switch, plus scale bar and north arrow on the exposure map */}
       <div className="absolute bottom-44 right-2 sm:bottom-[5.5rem] sm:right-4 z-[500] flex flex-col items-end gap-2">
+        <NationalModes map={mapInstance} lang={lang} onModeChange={setNationalMode} />
         {mapStyle === "exposure" && (
           <div className="hidden sm:flex items-end gap-3 px-2.5 py-1.5 rounded-xl bg-[#F6F0E2]/90 border border-[#16302A]/15 text-[#16302A] font-mono text-[10.5px] shadow-md" aria-hidden="true">
             <div className="flex flex-col items-start gap-0.5">

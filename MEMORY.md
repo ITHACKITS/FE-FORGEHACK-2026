@@ -62,6 +62,12 @@ flowchart LR
   - no router or landing (FE-01, FE-04).
 - **Next:** the PRD task board, FE-01 → FE-14 (P0), then FE-15/16 (P1).
 
+**Update 2026-10-10 18:45 WIB** (branch `chore/standbai-rebrand`, on top of `main` 868e1ab):
+- **Schools and hospitals removed:** map layers, icons (`public/school.png`, `public/hospital.png`), the Schools and Evacuation tabs, the facilities-at-risk card, legend entries, types and translations. Airports stay. The Health tab stays (mask and PM2.5 advice, not hospitals).
+- **Landing intro:** three steps over the 3D scene: hero "Know where the smoke is heading before it reaches home.", `#asap` (forest catches fire, `data-fire=1 data-smoke=1`), `#siap` (air clears, villagers return). Sections accept `data-hour` so the sky keeps moving forward. English is the default; the ID toggle stays. School and hospital wording on the landing and in the mini-sim is now villages and households.
+- **National map modes** (`src/components/layout/NationalModes.tsx`): "Wind & smoke" (canvas wind particles from `/layers/wind`, 16-day WIB slider labelled Forecast or Indicative after day 7, 10 m smoke or 850 hPa ash, smoke/ash paths from `/layers/smoke-paths`) and "Fire heatmap" (`/layers/heatmap`). The example smoke sim hides while a mode is on; failures show a "Data unavailable" chip with Retry.
+- **FE-03 (part):** `CONFIG.API_BASE` reads `VITE_API_BASE_URL`, falling back to `http://127.0.0.1:8000`.
+
 ## 6. Conventions
 - **Stack:** React 19 function components, TypeScript strict, Vite 8, Tailwind v4 for layout glue, prototype CSS tokens for all colours, `oxlint`.
 - **Config:** `VITE_API_BASE_URL`, `VITE_TELEGRAM_BOT_URL`. Never put API keys in the frontend.
@@ -83,6 +89,9 @@ flowchart LR
 | 2026-10-10 | Image optimizer (`vite-plugin-image-optimizer`, WebP/AVIF) | Large images must ship small |
 | 2026-10-10 | Chat is optional (P1); the same `/chat` serves web and Telegram | Focus on the core first |
 | 2026-10-10 | Claude Design only for screens the prototype lacks (History, chat, `/simulate` re-skin) | Avoid redesigning finished views |
+| 2026-10-10 | Schools and hospitals removed from the product; airports stay | Team decision; focus on households |
+| 2026-10-10 | Wind and smoke shown up to 16 days (days 8–16 "indicative"); no multi-year predictions | No forecast skill beyond about two weeks |
+| 2026-10-10 | Own canvas heat and wind layers instead of Leaflet plugins | No new dependencies; same overlay pattern as the smoke layer |
 
 ## 8. Links
 - Backend: https://github.com/ITHACKITS/BE-FORGEHACK-2026 · AI: https://github.com/ITHACKITS/AI-FORGEHACK-2026

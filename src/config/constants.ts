@@ -3,10 +3,12 @@
  */
 
 export const CONFIG = {
-  // Base URL Backend FastAPI (mendukung dev server lokal port 8000)
-  API_BASE: typeof window !== "undefined" && window.location.port === "8000"
-    ? window.location.origin
-    : "http://127.0.0.1:8000",
+  // Backend base URL: VITE_API_BASE_URL at build time (e.g. the Cloud Run URL), else the
+  // local dev server on port 8000. FE-03.
+  API_BASE: ((import.meta.env.VITE_API_BASE_URL as string | undefined) || "").replace(/\/+$/, "") ||
+    (typeof window !== "undefined" && window.location.port === "8000"
+      ? window.location.origin
+      : "http://127.0.0.1:8000"),
 
   // Google Maps Platform API Key (used for 3D Map3D element & Street View)
   GOOGLE_MAPS_API_KEY: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string ?? "",
@@ -44,10 +46,5 @@ export const CONFIG = {
       level2: { color: "#eab308", name: "Level II (Waspada)" },
       level1: { color: "#22c55e", name: "Level I (Normal)" }
     }
-  },
-
-  SCHOOL_THRESHOLDS: {
-    pjj_daring: 40,
-    stop_outdoor: 15
   }
 } as const;

@@ -15,8 +15,6 @@ export const TabImpact: React.FC<TabImpactProps> = ({ impact, hazard, rainMm }) 
   const child = impact?.children_exposed;
   const elder = impact?.elderly_exposed;
   const area = impact?.area_exposed_km2;
-  const schools = impact?.schools_exposed;
-  const health = impact?.healthcare_exposed;
 
   const isRaining = rainMm > 0;
 
@@ -67,17 +65,6 @@ export const TabImpact: React.FC<TabImpactProps> = ({ impact, hazard, rainMm }) 
               <div className="font-mono text-xs font-bold text-amber-300">
                 {formatCompactRange(elder?.min, elder?.median, elder?.max)}
               </div>
-            </div>
-          </div>
-
-          {/* Public Facilities at Risk */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-3 shadow-xs">
-            <div className="flex justify-between text-slate-400 text-[11px] mb-1">
-              <span>Public Facilities at Risk</span>
-              <span className="bg-white/10 text-slate-300 px-1.5 py-0.5 rounded text-[9px] font-mono">OSM</span>
-            </div>
-            <div className="font-mono text-xs font-bold text-emerald-300">
-              Schools: {schools?.median ?? "-"} | Health Facilities: {health?.median ?? "-"}
             </div>
           </div>
 

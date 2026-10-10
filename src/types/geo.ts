@@ -25,7 +25,7 @@ export interface HotspotProperties {
 export interface FacilityProperties {
   id: string;
   name: string;
-  type: "school" | "healthcare" | "hospital" | "airport";
+  type: "airport";
   district?: string;
   province?: string;
 }
