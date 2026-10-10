@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { X, Layers, Flame, ShieldAlert, Info } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface LegendModalProps {
   isOpen: boolean;
@@ -7,6 +8,8 @@ interface LegendModalProps {
 }
 
 export const LegendModal: React.FC<LegendModalProps> = ({ isOpen, onClose }) => {
+  const { lang } = useLanguage();
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
@@ -36,10 +39,12 @@ export const LegendModal: React.FC<LegendModalProps> = ({ isOpen, onClose }) => 
             </div>
             <div>
               <h2 className="text-base font-extrabold tracking-tight text-white">
-                Map Legend: Volcano Status &amp; Air Hazards
+                {lang === "id" ? "Keterangan Peta: Status Gunung & Ancaman Udara" : "Map Legend: Volcano Status & Air Hazards"}
               </h2>
               <p className="text-xs text-slate-400">
-                Based on official PVMBG ESDM data and computer ensemble dispersion predictions.
+                {lang === "id"
+                  ? "Berdasarkan data resmi PVMBG ESDM dan prediksi sebaran ensemble komputer."
+                  : "Based on official PVMBG ESDM data and computer ensemble dispersion predictions."}
               </p>
             </div>
           </div>

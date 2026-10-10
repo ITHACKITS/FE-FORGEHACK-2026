@@ -1,5 +1,6 @@
 import React from "react";
 import type { ValidationResponse, HazardType } from "../../types/api";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface TabScienceProps {
   validation: ValidationResponse | null;
@@ -7,6 +8,7 @@ interface TabScienceProps {
 }
 
 export const TabScience: React.FC<TabScienceProps> = ({ validation, hazard: _hazard }) => {
+  const { lang } = useLanguage();
   const fssScore = validation?.fractions_skill_score ?? validation?.fss_score;
   const hitRate = validation?.district_hit_rate !== undefined
     ? Math.round(validation.district_hit_rate * 100)
@@ -19,11 +21,15 @@ export const TabScience: React.FC<TabScienceProps> = ({ validation, hazard: _haz
     <div className="space-y-4 text-xs text-slate-100">
       <div>
         <span className="inline-block bg-sky-500/20 text-sky-300 border border-sky-400/30 font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
-          AUDIT &amp; SPATIAL VALIDATION
+          {lang === "id" ? "AUDIT & VALIDASI SPASIAL" : "AUDIT & SPATIAL VALIDATION"}
         </span>
-        <h3 className="font-extrabold text-sm text-white">Field Accuracy Evaluation</h3>
+        <h3 className="font-extrabold text-sm text-white">
+          {lang === "id" ? "Evaluasi Akurasi Lapangan" : "Field Accuracy Evaluation"}
+        </h3>
         <p className="text-[11px] text-slate-400 mb-2">
-          Atmospheric spatial verification against satellite observations and BPBD / VONA ground truth reports.
+          {lang === "id"
+            ? "Verifikasi spasial atmosferik terhadap citra satelit dan data ground truth laporan BPBD / VONA."
+            : "Atmospheric spatial verification against satellite observations and BPBD / VONA ground truth reports."}
         </p>
 
         {isNotTestable ? (

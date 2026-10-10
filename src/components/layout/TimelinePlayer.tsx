@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Play, Pause, ChevronUp, ChevronDown } from "lucide-react";
 import { formatHour } from "../../utils/formatters";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface TimelinePlayerProps {
   currentHour: number;
@@ -11,6 +12,7 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
   currentHour,
   onHourChange
 }) => {
+  const { lang } = useLanguage();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -38,7 +40,7 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
         className="absolute -top-7 left-1/2 -translate-x-1/2 w-12 h-7 rounded-t-xl flex items-center justify-center cursor-pointer transition-colors shadow-lg aurora-glass-card border-b-0 text-purple-300 hover:text-white"
-        title={isExpanded ? "Hide Time Horizon" : "Show Time Horizon"}
+        title={isExpanded ? (lang === "id" ? "Sembunyikan Garis Waktu" : "Hide Time Horizon") : (lang === "id" ? "Tampilkan Garis Waktu" : "Show Time Horizon")}
       >
         {isExpanded ? (
           <ChevronDown className="w-4 h-4" />
@@ -56,11 +58,11 @@ export const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
             <button
               onClick={() => setIsPlaying(!isPlaying)}
               className="w-7 h-7 rounded-full flex items-center justify-center transition cursor-pointer aurora-btn shrink-0"
-              title={isPlaying ? "Pause Animation" : "Play Animation"}
+              title={isPlaying ? (lang === "id" ? "Jeda Animasi" : "Pause Animation") : (lang === "id" ? "Putar Animasi" : "Play Animation")}
             >
               {isPlaying ? <Pause className="w-3.5 h-3.5 text-white" /> : <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />}
             </button>
-            <span className="text-xs font-bold text-white">Time Horizon:</span>
+            <span className="text-xs font-bold text-white">{lang === "id" ? "Waktu Proyeksi:" : "Time Horizon:"}</span>
             <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded-lg bg-black/40 border border-white/15 text-emerald-300 shadow-xs">
               {formatHour(currentHour)}
             </span>

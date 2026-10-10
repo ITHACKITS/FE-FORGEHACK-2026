@@ -1,5 +1,6 @@
 import React from "react";
 import type { HospitalItem } from "../../types/api";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface TabEvacProps {
   healthcare: HospitalItem[];
@@ -7,6 +8,7 @@ interface TabEvacProps {
 }
 
 export const TabEvac: React.FC<TabEvacProps> = ({ healthcare, onFlyTo }) => {
+  const { lang } = useLanguage();
   const safeCount = healthcare.filter((h) => {
     const prob = h.exposure_pct ?? h.exposure_prob_pct ?? (h.exposure_probability ? h.exposure_probability * 100 : 0);
     return h.is_safe !== undefined ? h.is_safe : prob < 10;
@@ -17,20 +19,28 @@ export const TabEvac: React.FC<TabEvacProps> = ({ healthcare, onFlyTo }) => {
     <div className="space-y-3 text-xs text-slate-100">
       <div>
         <span className="inline-block bg-sky-500/20 text-sky-300 border border-sky-400/30 font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
-          EMERGENCY REFERRAL SYSTEM
+          {lang === "id" ? "SISTEM RUJUKAN DARURAT" : "EMERGENCY REFERRAL SYSTEM"}
         </span>
-        <h3 className="font-extrabold text-sm text-white">Hospital &amp; Healthcare Zone Classification</h3>
+        <h3 className="font-extrabold text-sm text-white">
+          {lang === "id" ? "Klasifikasi Zona Rumah Sakit & Faskes" : "Hospital & Healthcare Zone Classification"}
+        </h3>
         <p className="text-[11px] text-slate-400">
-          Ensuring patients with acute respiratory distress &amp; ARI are routed to facilities with clean sterile air.
+          {lang === "id"
+            ? "Memastikan pasien dengan gangguan pernapasan dan ISPA akut dirujuk ke fasilitas dengan udara steril."
+            : "Ensuring patients with acute respiratory distress & ARI are routed to facilities with clean sterile air."}
         </p>
 
         <div className="grid grid-cols-2 gap-2 mt-2.5">
           <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-center shadow-xs">
-            <span className="text-[10px] text-emerald-300 block font-medium">Safe Referral Hospitals</span>
+            <span className="text-[10px] text-emerald-300 block font-medium">
+              {lang === "id" ? "RS Rujukan Aman" : "Safe Referral Hospitals"}
+            </span>
             <strong className="text-emerald-400 text-sm font-mono">{safeCount}</strong>
           </div>
           <div className="p-2.5 bg-rose-950/40 border border-rose-500/30 rounded-xl text-center shadow-xs">
-            <span className="text-[10px] text-rose-300 block font-medium">Exposed Danger Hospitals</span>
+            <span className="text-[10px] text-rose-300 block font-medium">
+              {lang === "id" ? "RS Zona Bahaya Terpapar" : "Exposed Danger Hospitals"}
+            </span>
             <strong className="text-rose-400 text-sm font-mono">{impactedCount}</strong>
           </div>
         </div>
@@ -38,7 +48,9 @@ export const TabEvac: React.FC<TabEvacProps> = ({ healthcare, onFlyTo }) => {
 
       {healthcare.length === 0 ? (
         <div className="p-4 text-center text-slate-300 bg-white/5 rounded-2xl border border-white/10 text-xs shadow-xs">
-          ✅ All referral hospitals are located inside clean safe zones free of aerosol contamination.
+          {lang === "id"
+            ? "✅ Seluruh rumah sakit rujukan berada di zona aman dan bersih dari sebaran aerosol."
+            : "✅ All referral hospitals are located inside clean safe zones free of aerosol contamination."}
         </div>
       ) : (
         <div className="space-y-2">

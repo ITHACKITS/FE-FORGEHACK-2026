@@ -1,6 +1,7 @@
 import React from "react";
 import { formatCompactRange, formatNumber } from "../../utils/formatters";
 import type { ImpactResponse, HazardType } from "../../types/api";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface TabImpactProps {
   impact: ImpactResponse | null;
@@ -9,6 +10,7 @@ interface TabImpactProps {
 }
 
 export const TabImpact: React.FC<TabImpactProps> = ({ impact, hazard, rainMm }) => {
+  const { lang } = useLanguage();
   const pop = impact?.population_exposed;
   const child = impact?.children_exposed;
   const elder = impact?.elderly_exposed;
@@ -22,36 +24,46 @@ export const TabImpact: React.FC<TabImpactProps> = ({ impact, hazard, rainMm }) 
     <div className="space-y-4 text-xs text-slate-100">
       <div>
         <span className="inline-block bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
-          POPULATION METRICS
+          {lang === "id" ? "METRIK KEPENDUDUKAN" : "POPULATION METRICS"}
         </span>
-        <h3 className="font-extrabold text-sm text-white">Estimated Impact (P5 &ndash; P50 &ndash; P95)</h3>
+        <h3 className="font-extrabold text-sm text-white">
+          {lang === "id" ? "Estimasi Dampak (P5 – P50 – P95)" : "Estimated Impact (P5 – P50 – P95)"}
+        </h3>
         <p className="text-[11px] text-slate-400">
-          Presented across uncertainty ensemble of 15 atmospheric model members.
+          {lang === "id"
+            ? "Disajikan dengan rentang ketidakpastian 15 anggota model atmosferik."
+            : "Presented across uncertainty ensemble of 15 atmospheric model members."}
         </p>
 
         <div className="mt-3 space-y-2">
           {/* Total Population */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-3 shadow-xs">
             <div className="flex justify-between text-slate-400 text-[11px] mb-1">
-              <span>Exposed Population (Total)</span>
+              <span>{lang === "id" ? "Populasi Terpapar (Total)" : "Exposed Population (Total)"}</span>
               <span className="bg-white/10 text-slate-300 px-1.5 py-0.5 rounded text-[9px] font-mono">WorldPop</span>
             </div>
             <div className="font-mono text-base font-extrabold text-white">
               {formatCompactRange(pop?.min, pop?.median, pop?.max)}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">People in ash/smoke plume path</div>
+            <div className="text-[10px] text-slate-400 mt-0.5">
+              {lang === "id" ? "Warga di jalur sebaran abu/asap" : "People in ash/smoke plume path"}
+            </div>
           </div>
 
           {/* Children & Elderly */}
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-white/5 border border-white/10 rounded-xl p-3 shadow-xs">
-              <span className="text-[10px] text-slate-400 block mb-0.5">Children (&lt;15 Yrs)</span>
+              <span className="text-[10px] text-slate-400 block mb-0.5">
+                {lang === "id" ? "Anak-Anak (<15 Thn)" : "Children (<15 Yrs)"}
+              </span>
               <div className="font-mono text-xs font-bold text-amber-300">
                 {formatCompactRange(child?.min, child?.median, child?.max)}
               </div>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-xl p-3 shadow-xs">
-              <span className="text-[10px] text-slate-400 block mb-0.5">Elderly (&ge;65 Yrs)</span>
+              <span className="text-[10px] text-slate-400 block mb-0.5">
+                {lang === "id" ? "Lansia (≥65 Thn)" : "Elderly (≥65 Yrs)"}
+              </span>
               <div className="font-mono text-xs font-bold text-amber-300">
                 {formatCompactRange(elder?.min, elder?.median, elder?.max)}
               </div>

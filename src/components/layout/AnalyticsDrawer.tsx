@@ -5,6 +5,7 @@ import { TabSchools } from "../tabs/TabSchools";
 import { TabEvac } from "../tabs/TabEvac";
 import { TabHealth } from "../tabs/TabHealth";
 import { TabScience } from "../tabs/TabScience";
+import { useLanguage } from "../../context/LanguageContext";
 import type {
   ImpactResponse,
   FacilitiesImpactResponse,
@@ -38,14 +39,15 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
   onFlyTo,
   onDrawRoute
 }) => {
+  const { lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>("impact");
 
   const tabs = [
-    { id: "impact", label: "Impact", icon: BarChart3 },
-    { id: "schools", label: "Schools", icon: GraduationCap },
-    { id: "evac", label: "Evacuation", icon: Ambulance },
-    { id: "health", label: "PPE / Health", icon: ShieldAlert },
-    { id: "science", label: "Science", icon: FlaskConical }
+    { id: "impact", label: lang === "id" ? "Dampak" : "Impact", icon: BarChart3 },
+    { id: "schools", label: lang === "id" ? "Sekolah" : "Schools", icon: GraduationCap },
+    { id: "evac", label: lang === "id" ? "Evakuasi" : "Evacuation", icon: Ambulance },
+    { id: "health", label: lang === "id" ? "Kesehatan" : "PPE / Health", icon: ShieldAlert },
+    { id: "science", label: lang === "id" ? "Sains" : "Science", icon: FlaskConical }
   ] as const;
 
   return (
@@ -58,10 +60,10 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
       <div className="h-13 px-4 py-2.5 flex items-center justify-between shrink-0 bg-black/40 border-b border-white/10">
         <div>
           <span className="font-extrabold text-xs block text-white tracking-wide">
-            Impact Projection &amp; Early Action
+            {lang === "id" ? "Proyeksi Dampak & Aksi Dini" : "Impact Projection & Early Action"}
           </span>
           <span className="text-[10px] text-slate-400">
-            48-Hour Multi-Hazard Ensemble Simulation
+            {lang === "id" ? "Simulasi Ensemble Multi-Bahaya 48 Jam" : "48-Hour Multi-Hazard Ensemble Simulation"}
           </span>
         </div>
         <button

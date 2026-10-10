@@ -1,21 +1,25 @@
 import React from "react";
 import type { HazardType } from "../../types/api";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface TabHealthProps {
   hazard?: HazardType;
 }
 
 export const TabHealth: React.FC<TabHealthProps> = ({ hazard = "volcano" }) => {
+  const { lang } = useLanguage();
   const isVolcano = hazard === "volcano";
 
   return (
     <div className="space-y-4 text-xs text-slate-100">
       <div>
         <span className="inline-block bg-rose-500/20 text-rose-300 border border-rose-400/30 font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
-          CRITICAL MEDICAL ADVISORY
+          {lang === "id" ? "PERINGATAN MEDIS KRITIS" : "CRITICAL MEDICAL ADVISORY"}
         </span>
         <h3 className="font-extrabold text-sm text-rose-400">
-          {isVolcano ? "Fatal Contact Lens Hazard (Softlens)" : "Peatland PM2.5 Fine Particulate Hazard"}
+          {isVolcano 
+            ? (lang === "id" ? "Bahaya Fatal Lensa Kontak (Softlens)" : "Fatal Contact Lens Hazard (Softlens)")
+            : (lang === "id" ? "Bahaya Partikulat Halus PM2.5 Asap Gambut" : "Peatland PM2.5 Fine Particulate Hazard")}
         </h3>
 
         <div className="bg-rose-950/50 border border-rose-500/40 rounded-2xl p-3.5 text-slate-100 mt-2 shadow-xs">

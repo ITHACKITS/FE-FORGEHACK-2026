@@ -1,0 +1,757 @@
+/* StandbAI: halaman (gulir halus, status suasana, parallax, animasi masuk, navigasi).
+   Satu loop requestAnimationFrame: Lenis -> pilih suasana -> parallax -> scene 3D (US.frame) -> anotasi. */
+(function(){
+  var root=document.documentElement;
+  var reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var fmt=function(n,d){return n.toLocaleString('id-ID',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
+  var $=function(s,c){return (c||document).querySelector(s);},$$=function(s,c){return [].slice.call((c||document).querySelectorAll(s));};
+
+  /* status bersama untuk scene 3D. Jam > 24 berarti hari berikutnya, jadi langit berputar menerus */
+  var HOUR={sunrise:6.9,noon:12,autumn:15.2,sunset:17.2,night:23,rain:32.5,storm:38,snow:40.5,sakura:55.8};
+  var WEATHER=['rain','storm','snow','autumn','sakura'],HAZ=['ash','smoke','fire','lava','ext','mud'];
+  var T={ash:.12,smoke:0,fire:0,lava:.5,ext:.35,mud:0,km:5,wind:1,out:0,hour:6.9,rain:0,storm:0,snow:0,autumn:0,sakura:0,scene:'sunrise'};
+  var US=window.US={reduce:reduce,T:T,HOUR:HOUR,anchors:{},frame:null,vel:0,prog:0,dirty:true,snap:false,hour:T.hour};
+
+  /* ---------- sistem 2 bahasa (ID / EN) ---------- */
+  var currentLang = localStorage.getItem('standbai_lang') || 'id';
+  var SCENE_NAMES = {
+    id: { sunrise: 'Fajar', noon: 'Siang', autumn: 'Kemarau', sunset: 'Senja', night: 'Malam', rain: 'Hujan', storm: 'Badai', snow: 'Salju', sakura: 'Mekar' },
+    en: { sunrise: 'Dawn', noon: 'Noon', autumn: 'Dry Season', sunset: 'Dusk', night: 'Night', rain: 'Rain', storm: 'Storm', snow: 'Snow', sakura: 'Bloom' }
+  };
+  var DICT = {
+    id: {
+      nav_ash: "Abu vulkanik",
+      nav_smoke: "Asap karhutla",
+      nav_sim: "Simulasi",
+      nav_methods: "Metode",
+      nav_outputs: "Keluaran",
+      nav_refs: "Rujukan",
+      nav_cta: "Jalankan Simulator Web",
+      hero_kicker: "JOINTS UGM 2026 · Peringatan aksi dini multi-bahaya",
+      hero_lede: "StandbAI memodelkan sebaran abu vulkanik dan asap kebakaran lahan dari data pemantauan resmi, lalu menerjemahkannya menjadi daftar wilayah, sekolah, dan fasilitas kesehatan yang perlu bersiap lebih dulu.",
+      btn_launch_sim: "Jalankan Simulator Web",
+      btn_mini_sim: "Coba Mini Simulasi",
+      fact_volcano: "gunung api Tipe A dalam katalog PVMBG",
+      fact_fire: "kawasan hutan dan gambut rawan terbakar",
+      fact_grid: "resolusi grid kependudukan untuk menghitung paparan",
+      fact_range: "rentang ketidakpastian pada setiap estimasi dampak",
+      bg_eyebrow: "Latar",
+      bg_title: "Peringatan sudah terbit, tetapi belum menjawab pertanyaan <em>di lapangan.</em>",
+      bg_lede: "Buletin VONA disusun untuk penerbangan. Titik api FIRMS berupa koordinat. Prakiraan angin berbentuk grid. Ketiganya akurat, tetapi tidak satu pun langsung menjawab pertanyaan kepala sekolah, petugas puskesmas, atau warga yang tinggal 20 km dari kawah.",
+      q_principal_who: "Kepala sekolah",
+      q_principal_q: "“Perlukah kegiatan belajar besok dialihkan ke daring?”",
+      q_health_who: "Petugas kesehatan",
+      q_health_q: "“Rumah sakit rujukan mana yang berada di luar sebaran abu?”",
+      q_citizen_who: "Warga",
+      q_citizen_q: "“Kapan masker kain tidak lagi cukup dan respirator N95 diperlukan?”",
+      flow_1_tag: "01 · Masukan data",
+      flow_1_title: "Data pemantauan",
+      flow_1_desc: "VONA · FIRMS · angin · penduduk",
+      flow_2_tag: "02 · Pemrosesan",
+      flow_2_title: "Model dispersi ensemble",
+      flow_2_desc: "Integrasi Lagrangian · StandbAI",
+      flow_3_tag: "03 · Aksi mitigasi",
+      flow_3_title: "Prioritas tindakan",
+      flow_3_desc: "Sekolah · rute rujukan · respirator",
+      vol_eyebrow: "Abu vulkanik",
+      vol_title: "Dari tinggi kolom abu ke <em>laju erupsi massa</em>",
+      vol_desc: "Tinggi kolom pada buletin VONA dikonversi menjadi laju erupsi massa dengan relasi empiris Mastin dkk. (2009). Massa tersebut kemudian dibagi ke ribuan paket partikel yang diadveksi oleh medan angin.",
+      vol_col_label: "Tinggi kolom di atas kawah",
+      vol_wind_btn_e: "Angin bertiup ke timur",
+      vol_wind_btn_w: "Angin bertiup ke barat",
+      vol_note: "Skenario hipotetis untuk ilustrasi. Nilai dihitung dari persamaan, bukan dari pengamatan.",
+      fire_eyebrow: "Asap kebakaran lahan",
+      fire_title: "Emisi PM2.5 diestimasi dari <em>daya radiasi api</em>",
+      fire_desc: "Setiap titik panas VIIRS dari NASA FIRMS membawa nilai Fire Radiative Power (FRP). Nilai itu dikonversi menjadi biomassa terbakar dengan koefisien Wooster dkk. (2005), lalu dikalikan faktor 2,34 untuk lahan gambut tropis sebelum asapnya dilepas ke model angin.",
+      fire_note: "Contoh ilustratif untuk lanskap gambut Riau, Sumatera Selatan, Kalimantan, dan Papua.",
+      fire_test: "Uji intervensi",
+      fire_btn_on: "Padamkan 5 titik api terbesar",
+      fire_btn_off: "Nyalakan kembali titik api",
+      sim_eyebrow: "Simulasi · mode titik bebas",
+      sim_title: "Coba model ensemble <em>secara langsung</em>",
+      sim_lede: "Klik peta untuk memindahkan sumber erupsi, atau fokuskan peta lalu gunakan tombol panah. Model menjalankan 24 anggota ensemble dengan gangguan angin acak dan integrasi RK2. Warna pada peta menunjukkan proporsi anggota yang mengendapkan abu di setiap sel: 90%, 50%, dan 5%.",
+      sim_wind_dir: "Angin bertiup menuju",
+      sim_wind_spd: "Kecepatan angin",
+      sim_col_h: "Tinggi kolom abu",
+      sim_seed_btn: "Ulangi ensemble",
+      sim_share_btn: "Salin tautan skenario",
+      sim_full_btn: "Buka Simulator Web Full (3D Earth)",
+      sim_school_pri: "Prioritas sekolah",
+      sim_school_sub: "Tiga sekolah dengan peluang paparan tertinggi pada run ini. Kode huruf mengacu pada label di peta.",
+      sim_note: "Ilustrasi konseptual pada peta skematik 240 km. Lokasi sekolah dan rumah sakit adalah contoh, dan hasilnya bukan peringatan resmi.",
+      method_eyebrow: "Metode",
+      method_title: "Empat tahap dari data terbuka <em>ke rekomendasi</em>",
+      method_lede: "Seluruh tahapan berjalan otomatis, sehingga pengguna di daerah tidak perlu mengolah data mentah sendiri.",
+      method_1_title: "Akuisisi data",
+      method_1_desc: "Data PVMBG, NASA FIRMS, Open-Meteo, WorldPop, dan OpenStreetMap diperbarui otomatis tanpa input manual.",
+      method_2_title: "Simulasi ensemble",
+      method_2_desc: "Aplikasi menjalankan 15 hingga 51 anggota integrasi Lagrangian RK2 dengan perturbasi angin. Demo di halaman ini memakai 24 anggota.",
+      method_3_title: "Analisis paparan",
+      method_3_desc: "Zona 90%, 50%, dan 5% ditumpangkan pada grid penduduk 100 m serta lokasi sekolah dan fasilitas kesehatan.",
+      method_4_title: "Rekomendasi tindakan",
+      method_4_desc: "Triase sekolah, rute ke rumah sakit di luar sebaran abu, anjuran respirator N95/KN95, dan prioritas pemadaman klaster titik api.",
+      rain_note: "Hujan lebat mempercepat pencucian abu dari atmosfer, tetapi endapan di lereng dapat memicu lahar hujan. Untuk kondisi ini sistem menerbitkan peringatan sekunder.",
+      mode_auto_b: "Otomatis",
+      mode_auto_s: "Sumber dan parameter diambil dari data resmi terbaru.",
+      mode_scen_b: "Skenario",
+      mode_scen_s: "Ubah tinggi kolom, arah angin, atau curah hujan. Keluaran diberi label hipotetis.",
+      mode_free_b: "Titik bebas",
+      mode_free_s: "Jalankan simulasi dari koordinat mana pun di wilayah Indonesia.",
+      banner_concept: "Contoh ilustratif · bukan data kejadian",
+      res_eyebrow: "Keluaran",
+      res_title: "Estimasi dampak disajikan <em>sebagai rentang</em>",
+      res_lede: "Untuk setiap indikator, aplikasi melaporkan persentil ke-5, ke-50, dan ke-95 dari seluruh anggota ensemble. Rentang ini berbeda dari zona peta, yang menyatakan proporsi anggota yang mengendapkan abu di suatu sel.",
+      res_erupt_title: "Erupsi · kolom abu 5.000 m",
+      res_erupt_pop: "Penduduk terpapar",
+      res_erupt_pop_unit: "jiwa",
+      res_erupt_sch: "Sekolah di zona tinggi (≥40%)",
+      res_erupt_sch_sub: "sekolah · abu tiba paling cepat 3,5 jam",
+      res_erupt_hosp: "Rumah sakit di luar sebaran",
+      res_erupt_hosp_sub: "rute rujukan terdekat 11,4 km",
+      res_fire_title: "Karhutla gambut · 42 titik api",
+      res_fire_pop: "Penduduk terpapar",
+      res_fire_pop_sub: "jiwa · 11 sekolah",
+      res_range_title: "Rentang penduduk terpapar (jiwa)",
+      res_erupt_label: "Erupsi",
+      res_fire_label: "Karhutla",
+      res_note: "Pada contoh ini, pemadaman 5 titik api terbesar menurunkan perkiraan paparan penduduk sebesar 41% dan mengeluarkan 6 sekolah dari zona terdampak.",
+      ref_eyebrow: "Rujukan",
+      ref_title: "Data dan metode <em>yang digunakan</em>",
+      ref_notice: "Pernyataan. StandbAI adalah alat estimasi ilmiah untuk pembelajaran, perencanaan kontinjensi, dan kesiapsiagaan. Keluarannya bukan peringatan resmi. Status kedaruratan dan perintah evakuasi mengikuti PVMBG Badan Geologi, BMKG, BNPB, dan BPBD setempat.",
+      aud_eyebrow: "Pengguna",
+      aud_title: "Untuk mereka yang menyiapkan keputusan <em>sebelum status naik</em>",
+      aud_1_title: "BPBD dan relawan",
+      aud_1_desc: "Memetakan wilayah terdampak dan menyusun prioritas sebelum status gunung api berubah.",
+      aud_2_title: "Sekolah dan fasilitas kesehatan",
+      aud_2_desc: "Memperkirakan waktu kedatangan abu dan memilih rute rujukan yang aman.",
+      aud_3_title: "Peneliti dan pelajar",
+      aud_3_desc: "Menelusuri metode, sumber data, dan ketidakpastian di balik setiap angka.",
+      aud_btn_app: "Buka Simulator Web StandbAI",
+      aud_btn_ref: "Baca rujukan",
+      btn_web_sim: "Buka Web Simulator",
+      view_landscape: "Lihat lanskap",
+      hide_landscape: "Tampilkan konten",
+      cue_scroll: "Gulir",
+      legend_tier_90: "Zona 90% · inti",
+      legend_tier_50: "Zona 50% · median",
+      legend_tier_5: "Zona 5% · jangkauan terjauh",
+      an_plume: "Kolom erupsi",
+      an_lava: "Guguran lava pijar",
+      an_lava_sub: "mengikuti alur lembah di lereng",
+      an_mud: "Lahar hujan",
+      an_mud_sub: "endapan abu terbawa aliran air",
+      an_lake: "Sumber air warga",
+      an_lake_sub: "rentan tercemar endapan abu",
+      an_fire: "Titik panas",
+      an_fire_sub: "terdeteksi satelit VIIRS",
+      vc_noon: "Kolom abu naik dari kawah",
+      vc_dry: "Vegetasi meranggas, lahan gambut mengering",
+      vc_dusk: "Kabut asap menutup lembah",
+      vc_night: "Lontaran material pijar dari kawah",
+      vc_rain: "Endapan abu di lereng menjadi ancaman lahar",
+      vc_storm: "Petir di bawah awan kumulonimbus",
+      vc_snow: "Kabut dan salju di puncak tinggi, seperti di Puncak Jaya",
+      vc_sakura: "Sakura bermekaran, seperti di Kebun Raya Cibodas",
+      foot_note: "Estimasi ilmiah, bukan peringatan resmi. Rujuk PVMBG, BMKG, BNPB, dan BPBD.",
+      foot_top: "Kembali ke atas"
+    },
+    en: {
+      nav_ash: "Volcanic ash",
+      nav_smoke: "Wildfire smoke",
+      nav_sim: "Simulation",
+      nav_methods: "Methods",
+      nav_outputs: "Outputs",
+      nav_refs: "References",
+      nav_cta: "Launch Web Simulator",
+      hero_kicker: "JOINTS UGM 2026 · Multi-hazard early action warning",
+      hero_lede: "StandbAI models volcanic ash dispersion and peatland wildfire smoke from official monitoring data, translating predictions into prioritized action lists for communities, schools, and hospitals.",
+      btn_launch_sim: "Launch Web Simulator",
+      btn_mini_sim: "Try Mini Simulation",
+      fact_volcano: "Type A active volcanoes in PVMBG catalog",
+      fact_fire: "fire-prone tropical peatland forest reserves",
+      fact_grid: "population grid resolution for impact exposure",
+      fact_range: "uncertainty interval across all impact metrics",
+      bg_eyebrow: "Context",
+      bg_title: "Alerts are published, but ground-level questions remain <em>unanswered.</em>",
+      bg_lede: "VONA bulletins are written for aviation. FIRMS hotspots are raw coordinates. Wind forecasts are grid vectors. All are accurate, yet none directly answer what school principals, clinic nurses, or residents living 20 km away must do.",
+      q_principal_who: "School Principal",
+      q_principal_q: "“Should tomorrow's classes switch to online distance learning?”",
+      q_health_who: "Healthcare Officer",
+      q_health_q: "“Which referral hospital is safe outside the ash plume dispersion?”",
+      q_citizen_who: "Resident",
+      q_citizen_q: "“When is a cloth mask insufficient and an N95 respirator mandatory?”",
+      flow_1_tag: "01 · Data Ingestion",
+      flow_1_title: "Monitoring Data",
+      flow_1_desc: "VONA · FIRMS · Wind · Population",
+      flow_2_tag: "02 · Processing",
+      flow_2_title: "Ensemble Dispersion Model",
+      flow_2_desc: "Lagrangian Integration · StandbAI",
+      flow_3_tag: "03 · Early Action",
+      flow_3_title: "Action Priorities",
+      flow_3_desc: "Schools · Safe Referral · Respirators",
+      vol_eyebrow: "Volcanic Ash",
+      vol_title: "From plume height to <em>mass eruption rate</em>",
+      vol_desc: "Plume height in VONA bulletins is converted into mass eruption rate using empirical relations (Mastin et al., 2009). The erupted mass is then discretized into thousands of particle parcels advected by wind fields.",
+      vol_col_label: "Plume height above crater",
+      vol_wind_btn_e: "Wind blowing eastward",
+      vol_wind_btn_w: "Wind blowing westward",
+      vol_note: "Hypothetical scenario for illustration. Values computed from equations, not ground observations.",
+      fire_eyebrow: "Peatland Smoke",
+      fire_title: "PM2.5 emissions estimated from <em>fire radiative power</em>",
+      fire_desc: "Each VIIRS hotspot from NASA FIRMS carries Fire Radiative Power (FRP). This value is converted into burned biomass with Wooster et al. (2005) coefficients, scaled by 2.34x for tropical peatlands before aerosol advection.",
+      fire_note: "Illustrative example for tropical peatland landscapes in Riau, South Sumatra, Kalimantan, and Papua.",
+      fire_test: "Intervention Test",
+      fire_btn_on: "Extinguish top 5 fire hotspots",
+      fire_btn_off: "Relight fire hotspots",
+      sim_eyebrow: "Simulation · Free Point Mode",
+      sim_title: "Test the ensemble dispersion model <em>live</em>",
+      sim_lede: "Click the map to reposition the eruption source, or focus the map and use arrow keys. The model runs 24 ensemble members with stochastic wind perturbations and RK2 integration. Color tiers indicate deposition probabilities: 90%, 50%, and 5%.",
+      sim_wind_dir: "Wind blowing towards",
+      sim_wind_spd: "Wind speed",
+      sim_col_h: "Ash column height",
+      sim_seed_btn: "Rerun ensemble",
+      sim_share_btn: "Copy scenario link",
+      sim_full_btn: "Open Full Web Simulator (3D Earth)",
+      sim_school_pri: "School Priorities",
+      sim_school_sub: "Three schools with highest exposure likelihood in this run. Letter codes refer to map markers.",
+      sim_note: "Conceptual illustration on a 240 km schematic grid. School and hospital coordinates are examples; results do not constitute an official warning.",
+      method_eyebrow: "Methods",
+      method_title: "Four stages from open data <em>to early action</em>",
+      method_lede: "All stages run automatically, eliminating the need for local emergency teams to process raw data.",
+      method_1_title: "Data Acquisition",
+      method_1_desc: "PVMBG, NASA FIRMS, Open-Meteo, WorldPop, and OpenStreetMap data auto-update without manual input.",
+      method_2_title: "Ensemble Simulation",
+      method_2_desc: "The system runs 15 to 51 RK2 Lagrangian integration members with stochastic wind perturbations. This demo uses 24 members.",
+      method_3_title: "Exposure Analysis",
+      method_3_desc: "90%, 50%, and 5% impact contours are overlaid on 100 m population grids, schools, and healthcare facilities.",
+      method_4_title: "Mitigation Action Advisory",
+      method_4_desc: "School triage, safe hospital evacuation corridors, N95/KN95 respirator guidance, and hotspot cluster suppression priority.",
+      rain_note: "Heavy precipitation accelerates atmospheric ash scavenging, but slope deposits can trigger secondary rain lahars. The system issues secondary warnings for such conditions.",
+      mode_auto_b: "Automated",
+      mode_auto_s: "Sources and parameters ingested directly from latest official feeds.",
+      mode_scen_b: "Scenario",
+      mode_scen_s: "Adjust plume height, wind vector, or rainfall. Outputs marked as hypothetical.",
+      mode_free_b: "Free Point",
+      mode_free_s: "Run simulations from any coordinates across Indonesia.",
+      banner_concept: "Illustrative example · not actual event data",
+      res_eyebrow: "Outputs",
+      res_title: "Impact estimates reported <em>as uncertainty ranges</em>",
+      res_lede: "For each indicator, the system reports the 5th, 50th, and 95th percentiles across all ensemble members. This differs from map zones, which reflect grid-cell deposition likelihoods.",
+      res_erupt_title: "Eruption · 5,000 m ash column",
+      res_erupt_pop: "Exposed population",
+      res_erupt_pop_unit: "people",
+      res_erupt_sch: "Schools in high-risk zone (≥40%)",
+      res_erupt_sch_sub: "schools · earliest ash arrival 3.5 hrs",
+      res_erupt_hosp: "Hospitals outside plume",
+      res_erupt_hosp_sub: "nearest safe referral route 11.4 km",
+      res_fire_title: "Peatland wildfire · 42 hotspots",
+      res_fire_pop: "Exposed population",
+      res_fire_pop_sub: "people · 11 schools",
+      res_range_title: "Exposed population range (people)",
+      res_erupt_label: "Eruption",
+      res_fire_label: "Wildfire",
+      res_note: "In this example, extinguishing the top 5 hotspots cuts estimated population exposure by 41% and moves 6 schools out of the danger zone.",
+      ref_eyebrow: "References",
+      ref_title: "Data sources and <em>scientific methodology</em>",
+      ref_notice: "Disclaimer: StandbAI is a scientific estimation platform for contingency planning and preparedness. Outputs are advisory and not official warnings. Refer to PVMBG, BMKG, BNPB, and regional BPBD for official emergency declarations.",
+      aud_eyebrow: "Target Users",
+      aud_title: "For decision makers acting <em>before alert levels escalate</em>",
+      aud_1_title: "Disaster Agencies & Volunteers",
+      aud_1_desc: "Map affected sectors and prioritize early actions before alert levels escalate.",
+      aud_2_title: "Schools & Healthcare",
+      aud_2_desc: "Forecast ash arrival times and determine safe patient evacuation corridors.",
+      aud_3_title: "Researchers & Students",
+      aud_3_desc: "Inspect numerical methods, open data feeds, and uncertainty intervals behind every metric.",
+      aud_btn_app: "Open StandbAI Web Simulator",
+      aud_btn_ref: "Read references",
+      btn_web_sim: "Open Web Simulator",
+      view_landscape: "View landscape",
+      hide_landscape: "Show content",
+      cue_scroll: "Scroll",
+      legend_tier_90: "90% Zone · core",
+      legend_tier_50: "50% Zone · median",
+      legend_tier_5: "5% Zone · max reach",
+      an_plume: "Eruption column",
+      an_lava: "Lava avalanche",
+      an_lava_sub: "following slope valley paths",
+      an_mud: "Rain lahar",
+      an_mud_sub: "ash deposits carried by streamflow",
+      an_lake: "Community water source",
+      an_lake_sub: "vulnerable to ash contamination",
+      an_fire: "Thermal hotspot",
+      an_fire_sub: "detected by VIIRS satellite",
+      vc_noon: "Ash column rising from crater",
+      vc_dry: "Vegetation dries out, peatlands desiccate",
+      vc_dusk: "Haze blanket enveloping the valley",
+      vc_night: "Incandescent material ejection from summit",
+      vc_rain: "Slope ash deposits turn into lahar hazards",
+      vc_storm: "Lightning flashes beneath cumulonimbus cloud",
+      vc_snow: "Mist and snow on glaciated peaks, like Puncak Jaya",
+      vc_sakura: "Cherry blossoms in bloom, like at Cibodas Botanical Garden",
+      foot_note: "Scientific estimation, not official warning. Refer to PVMBG, BMKG, BNPB, and BPBD.",
+      foot_top: "Back to top"
+    }
+  };
+
+  /* ---------- kontrol erupsi dan karhutla ---------- */
+  var kmEl=$('#km'),kmOut=$('#kmOut'),merOut=$('#merOut'),coKm=$('#coKm');
+  var windBtn=$('#windBtn'),fireBtn=$('#fireBtn'),fireOut=$('#fireOut');
+  function mer(){var t=140.85*Math.pow(T.km,4.15)/1000;return t<10?fmt(t,1):fmt(Math.round(t));}
+  function renderMer(){
+    var kmStr = fmt(T.km,1)+' km';
+    kmOut.textContent = kmStr;
+    var merVal = mer();
+    if(currentLang === 'en'){
+      merOut.innerHTML = 'Mass eruption rate approximately <strong>'+merVal+' tons per second</strong> for a '+kmStr+' column.';
+      if(coKm) coKm.textContent = 'approx. '+kmStr+' above crater';
+    } else {
+      merOut.innerHTML = 'Laju erupsi massa sekitar <strong>'+merVal+' ton per detik</strong> untuk kolom setinggi '+kmStr+'.';
+      if(coKm) coKm.textContent = 'sekitar '+kmStr+' di atas kawah';
+    }
+    US.dirty = true;
+  }
+  kmEl.addEventListener('input',function(){T.km=parseFloat(kmEl.value);renderMer();});
+  windBtn.addEventListener('click',function(){
+    T.wind=-T.wind;
+    if(currentLang === 'en'){
+      windBtn.textContent = 'Wind blowing ' + (T.wind>0?'eastward':'westward');
+    } else {
+      windBtn.textContent = 'Angin bertiup ke ' + (T.wind>0?'timur':'barat');
+    }
+    US.dirty=true;
+  });
+  function renderFire(){
+    if(currentLang === 'en'){
+      fireOut.innerHTML = T.out
+        ? 'Estimated population exposure drops by <strong>41%</strong>, and <strong>6 schools</strong> exit the danger zone.'
+        : '<strong>42 hotspots</strong> with <strong>1,340 MW</strong> total FRP release approx. <strong>480 tons</strong> PM2.5 daily.';
+      if(fireBtn) fireBtn.textContent = T.out ? 'Relight fire hotspots' : 'Extinguish top 5 fire hotspots';
+    } else {
+      fireOut.innerHTML = T.out
+        ?'Perkiraan paparan penduduk turun <strong>41%</strong>, dan <strong>6 sekolah</strong> keluar dari zona terdampak.'
+        :'<strong>42 titik api</strong> dengan total FRP <strong>1.340 MW</strong> melepas sekitar <strong>480 ton</strong> PM2.5 per hari.';
+      if(fireBtn) fireBtn.textContent = T.out ? 'Nyalakan kembali titik api' : 'Padamkan 5 titik api terbesar';
+    }
+  }
+  fireBtn.addEventListener('click',function(){T.out=T.out?0:1;fireBtn.setAttribute('aria-pressed',T.out?'true':'false');renderFire();US.dirty=true;});
+
+  /* Inisialisasi & Penggantian Bahasa */
+  var langBtn = $('#langBtn'), langBtnText = $('#langBtnText');
+  function applyLang(l){
+    currentLang = l;
+    localStorage.setItem('standbai_lang', l);
+    if(langBtnText) langBtnText.textContent = l === 'id' ? 'EN' : 'ID';
+    if(langBtn) langBtn.title = l === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia';
+    var dict = DICT[l] || DICT.id;
+    $$('[data-i18n]').forEach(function(el){
+      var k = el.getAttribute('data-i18n');
+      if(dict[k]){
+        var iTag = el.querySelector('i');
+        var svgTag = el.querySelector('svg');
+        if(iTag){
+          el.innerHTML = '';
+          el.appendChild(iTag);
+          el.appendChild(document.createTextNode(' ' + dict[k]));
+        } else if(svgTag){
+          el.innerHTML = '';
+          el.appendChild(document.createTextNode(dict[k] + ' '));
+          el.appendChild(svgTag);
+        } else {
+          el.innerHTML = dict[k];
+        }
+      }
+    });
+    if(windBtn){
+      if(l === 'en') windBtn.textContent = 'Wind blowing ' + (T.wind>0?'eastward':'westward');
+      else windBtn.textContent = 'Angin bertiup ke ' + (T.wind>0?'timur':'barat');
+    }
+    if(vbtn && vbtn.querySelector('span')){
+      var on = document.body.classList.contains('focus');
+      vbtn.querySelector('span').textContent = on ? (l === 'en' ? 'Show content' : 'Tampilkan konten') : (l === 'en' ? 'View landscape' : 'Lihat lanskap');
+    }
+    if(chip && T.scene){
+      var scName = (SCENE_NAMES[l] && SCENE_NAMES[l][T.scene]) || '';
+      if(scName) chip.querySelector('span').textContent = scName;
+    }
+    renderMer();
+    renderFire();
+    window.dispatchEvent(new CustomEvent('standbai_lang_change', { detail: l }));
+  }
+  if(langBtn){
+    langBtn.addEventListener('click', function(){
+      applyLang(currentLang === 'id' ? 'en' : 'id');
+    });
+  }
+  window.addEventListener('standbai_lang_change', function(e){
+    if(e.detail && e.detail !== currentLang) applyLang(e.detail);
+  });
+  renderMer();renderFire();
+  applyLang(currentLang);
+
+  /* ---------- mode lihat lanskap ---------- */
+  var vbtn=$('#viewBtn');
+  function setFocus(on){
+    document.body.classList.toggle('focus',on);
+    vbtn.setAttribute('aria-pressed',on?'true':'false');
+    if(vbtn.querySelector('span')){
+      vbtn.querySelector('span').textContent=on?(currentLang==='en'?'Show content':'Tampilkan konten'):(currentLang==='en'?'View landscape':'Lihat lanskap');
+    }
+  }
+  vbtn.addEventListener('click',function(){if(window.HLAudio)window.HLAudio.playClick();setFocus(!document.body.classList.contains('focus'));});
+  addEventListener('keydown',function(e){if(e.key==='Escape')setFocus(false);});
+
+  /* ---------- kontrol audio suasana ---------- */
+  var aBtn=$('#audioBtn');
+  if(aBtn){
+    aBtn.addEventListener('click',function(){
+      if(!window.HLAudio)return;
+      var on=window.HLAudio.toggle();
+      aBtn.setAttribute('aria-pressed',on?'true':'false');
+      aBtn.classList.toggle('playing',on);
+      aBtn.setAttribute('aria-label',on?'Matikan suara suasana alam':'Nyalakan suara suasana alam');
+      aBtn.title=on?'Matikan suara alam':'Nyalakan suara alam';
+    });
+  }
+
+  /* ---------- menu HP ---------- */
+  var mBtn=$('#menuBtn'),mNav=$('#navLinks');
+  function menu(o){mNav.classList.toggle('open',o);mBtn.setAttribute('aria-expanded',o?'true':'false');mBtn.setAttribute('aria-label',o?'Tutup menu':'Buka menu');}
+  mBtn.addEventListener('click',function(e){e.stopPropagation();menu(!mNav.classList.contains('open'));});
+  document.addEventListener('click',function(e){if(!mNav.contains(e.target))menu(false);});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&mNav.classList.contains('open')){menu(false);mBtn.focus();}});
+
+  /* tautan luar: isi LINKS, tombolnya otomatis tampil */
+  var LINKS={app:'',repo:'',email:''};
+  $$('[data-link]').forEach(function(a){var k=a.getAttribute('data-link'),v=LINKS[k];if(v){a.href=(k==='email'?'mailto:':'')+v;a.hidden=false;}});
+
+  /* ---------- gulir halus (Lenis). Lompatan lewat menu jadi time-lapse sinematik ---------- */
+  var lenis=null;
+  if(!reduce&&window.Lenis){
+    var isTrackpad=false,tpTimer=null;
+    try{
+      lenis=new Lenis({
+        lerp:.12,
+        smoothWheel:true,
+        wheelMultiplier:1,
+        touchMultiplier:1,
+        virtualScroll:function(e){
+          var ev=e&&e.event;
+          if(!ev)return true;
+          /* jika sentuhan di layar sentuh, biarkan native gesture */
+          if(ev.type&&ev.type.indexOf('touch')!==-1)return false;
+          /* deteksi gestur trackpad/touchpad 2 jari: deltaMode 0 dengan desimal atau delta kecil */
+          if(ev.deltaMode===0){
+            var dy=Math.abs(ev.deltaY||0),dx=Math.abs(ev.deltaX||0);
+            if(dy<60||(dy%1!==0)||dx>0){
+              isTrackpad=true;
+              clearTimeout(tpTimer);
+              tpTimer=setTimeout(function(){isTrackpad=false;},300);
+            }
+          }
+          if(isTrackpad){
+            clearTimeout(tpTimer);
+            tpTimer=setTimeout(function(){isTrackpad=false;},300);
+            return false; /* native scroll untuk trackpad: instan, responsif, tidak macet */
+          }
+          return true; /* mouse wheel biasa tetap dihaluskan oleh Lenis */
+        }
+      });
+      root.classList.add('has-lenis');
+      US.lenis=lenis;
+    }catch(e){lenis=null;}
+  }
+  var easeSnap=function(t){return 1-Math.pow(1-t,4);};
+  function goTo(t,instant){
+    var y=t.getBoundingClientRect().top+scrollY-(t.id==='beranda'?0:72);
+    if(instant||reduce){if(lenis)lenis.scrollTo(y,{immediate:true});else scrollTo(0,y);US.snap=true;return;}
+    if(lenis){var d=Math.abs(y-scrollY);lenis.scrollTo(y,{duration:Math.min(1.15,Math.max(0.65,d/3600)),easing:easeSnap});}
+    else scrollTo({top:y,behavior:'smooth'});
+  }
+  document.addEventListener('click',function(ev){
+    var a=ev.target.closest&&ev.target.closest('a[href^="#"]');if(!a)return;
+    var id=a.getAttribute('href').slice(1),t=id&&document.getElementById(id);if(!t)return;
+    if(a.closest('#rail')){
+      if(window.HLAudio)window.HLAudio.playClick();
+      a.classList.remove('clicked');
+      void a.offsetWidth;
+      a.classList.add('clicked');
+      setTimeout(function(){a.classList.remove('clicked');},700);
+    }
+    ev.preventDefault();menu(false);goTo(t);
+    if(history.replaceState)history.replaceState(null,'','#'+id);
+    if(id==='konten'){t.setAttribute('tabindex','-1');t.focus({preventScroll:true});}
+  });
+
+  /* ---------- posisi bagian (di-cache; dihitung ulang saat ukuran berubah) ---------- */
+  var items=$$('main [data-scene]'),centers=[],par=$$('[data-speed]'),parTop=[],band=$('[data-band]'),bandTop=0;
+  function docTop(el){var y=0;while(el){y+=el.offsetTop;el=el.offsetParent;}return y;}
+  function measure(){
+    centers=items.map(function(el){return docTop(el)+el.offsetHeight*.5;});
+    parTop=par.map(function(el){return docTop(el)+el.offsetHeight*.5;});
+    if(band)bandTop=docTop(band.parentNode);
+    if(typeof railSecs!=='undefined')railTop=railSecs.map(docTop);
+    US.dirty=true;
+  }
+  measure();
+  addEventListener('resize',measure);
+  addEventListener('load',measure);
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(measure);
+  if(window.ResizeObserver)new ResizeObserver(function(){measure();}).observe(document.querySelector('main'));
+
+  /* suasana mengikuti posisi gulir. Semua nilai bergeser menerus, tidak ada lompatan di tengah jalan */
+  var curIdx=-1;
+  function pick(){
+    var mid=scrollY+innerHeight*.5,n=items.length,i,idx=0;
+    for(i=0;i<n;i++){if(centers[i]<=mid)idx=i;}
+    var j=Math.min(n-1,idx+1),f=j===idx?0:Math.max(0,Math.min(1,(mid-centers[idx])/(centers[j]-centers[idx])));
+    var e=f*f*(3-2*f),A=items[idx].dataset,B=items[j].dataset;
+    T.hour=HOUR[A.scene]+(HOUR[B.scene]-HOUR[A.scene])*e;
+    WEATHER.forEach(function(k){T[k]=(A.scene===k?1:0)*(1-e)+(B.scene===k?1:0)*e;});
+    HAZ.forEach(function(k){T[k]=+A[k]+((+B[k])-(+A[k]))*e;});
+    T.scene=e<.5?A.scene:B.scene;
+    var near=e<.5?idx:j;if(near!==curIdx){curIdx=near;onScene(items[near]);}
+    var max=document.documentElement.scrollHeight-innerHeight;US.prog=max>0?Math.min(1,scrollY/max):0;
+    if(window.HLAudio&&window.HLAudio.isPlaying())window.HLAudio.update(T);
+  }
+
+  /* ---------- rail ikon suasana + chip jam ---------- */
+  var HALF='<path d="M6 16a6 6 0 0 1 12 0z"/>',RAYS='<path d="M12 6v2M5.6 9.6l1.4 1.4M18.4 9.6L17 11M3 16h2M19 16h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',HZ='<path d="M3 19h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',CLOUD='<path d="M6.5 15a4 4 0 0 1-.3-8 5.5 5.5 0 0 1 10.6 1A3.6 3.6 0 0 1 17 15z"/>';
+  var ICON={
+    sunrise:'<svg viewBox="0 0 24 24" fill="currentColor">'+HALF+RAYS+HZ+'<path d="M9.5 4.5L12 2l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    noon:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    autumn:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.8 L13.5 5 L15.6 4.2 L15 8.2 L18.2 6.6 L17.6 9.8 L21.6 10.4 L19.6 13 L20.8 15.4 L16.2 14.4 L15.4 16.6 L12.9 15.6 L12.9 22.2 L11.1 22.2 L11.1 15.6 L8.6 16.6 L7.8 14.4 L3.2 15.4 L4.4 13 L2.4 10.4 L6.4 9.8 L5.8 6.6 L9 8.2 L8.4 4.2 L10.5 5Z"/></svg>',
+    sunset:'<svg viewBox="0 0 24 24" fill="currentColor">'+HALF+RAYS+HZ+'<path d="M9.5 2.5L12 5l2.5-2.5M6 21.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    night:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 14.6A8.4 8.4 0 1 1 9.4 4.5a6.7 6.7 0 0 0 10.1 10.1z"/><path d="M18.2 3.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>',
+    rain:'<svg viewBox="0 0 24 24" fill="currentColor">'+CLOUD+'<path d="M8 18l-1.2 3M12.5 18l-1.2 3M17 18l-1.2 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    storm:'<svg viewBox="0 0 24 24" fill="currentColor">'+CLOUD+'<path d="M12.8 14.5l-3.4 4.6h2.6l-1.2 4.2 4.4-5.8h-2.7l1.1-3z"/></svg>',
+    snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6M9.6 4.2L12 6.5l2.4-2.3M9.6 19.8L12 17.5l2.4 2.3"/></svg>',
+    sakura:'<svg viewBox="0 0 24 24" fill="currentColor"><g transform="translate(12 12)"><path id="pt" d="M0-1.2C-2.6-3.4-3.4-7.4-1.4-9.6L0-8.2l1.4-1.4C3.4-7.4 2.6-3.4 0-1.2z"/><use href="#pt" transform="rotate(72)"/><use href="#pt" transform="rotate(144)"/><use href="#pt" transform="rotate(216)"/><use href="#pt" transform="rotate(288)"/><circle r="1.6" fill="#7a2e45"/></g></svg>'
+  };
+  var ICON_COLOR={sunrise:'#FDB773',noon:'#FFF0C5',autumn:'#EB895B',sunset:'#FF8C52',night:'#8AD6D1',rain:'#359FA0',storm:'#DA6556',snow:'#8AD6D1',sakura:'#FDB773'};
+  var bar=$('#progress'),rail=$('#rail'),chip=$('#sceneChip'),navA=$$('.nav-links a');
+  var railSecs=$$('main section:not([data-norail]), main .vista[data-rail]');
+  function hhmm(h){h=((h%24)+24)%24;var a=Math.floor(h),m=Math.floor((h-a)*60);return (a<10?'0':'')+a+'.'+(m<10?'0':'')+m;}
+  railSecs.forEach(function(s,i){
+    var a=document.createElement('a');
+    a.href='#'+s.id;
+    a.setAttribute('aria-label',s.dataset.label+', '+(s.dataset.sl||''));
+    var sc=s.dataset.scene,col=ICON_COLOR[sc]||'#FDB773',nx=railSecs[i+1];
+    a.style.setProperty('--ic',col);if(nx)a.style.setProperty('--ic2',ICON_COLOR[nx.dataset.scene]||col);
+    a.innerHTML=ICON[sc]+(nx?'<span class="rail-seg"><i></i></span>':'')+'<span class="rail-tip"><time>'+hhmm(HOUR[sc])+'</time><span><em>'+(s.dataset.sl||sc)+'</em><b>'+s.dataset.label+'</b></span></span>';
+    rail.appendChild(a);
+  });
+  var dots=[].slice.call(rail.children),segs=dots.map(function(d){return d.querySelector('.rail-seg i');}),railTop=[],railOn=-1,peekT=null;
+  /* ruas garis rail terisi sebanding posisi gulir di antara dua suasana */
+  function railFill(){
+    if(railOn<0||!railTop.length)return;var mid=scrollY+innerHeight*.5,i=railOn,sg=segs[i];if(!sg)return;
+    var f=Math.max(0,Math.min(1,(mid-railTop[i])/Math.max(1,railTop[i+1]-railTop[i])));sg.style.setProperty('--f',f.toFixed(3));
+  }
+  /* pil di menu atas meluncur ke tautan yang ditunjuk, kembali ke tautan aktif */
+  var pill=$('.nav-pill'),pillOn=null;
+  function placePill(a){
+    if(!pill||innerWidth<=1100)return;
+    if(!a){pill.style.opacity='0';return;}
+    pill.style.width=a.offsetWidth+'px';pill.style.transform='translateX('+a.offsetLeft+'px)';pill.style.opacity='1';
+  }
+  navA.forEach(function(a){a.addEventListener('mouseenter',function(){placePill(a);});a.addEventListener('focus',function(){placePill(a);});});
+  if(mNav){mNav.addEventListener('mouseleave',function(){placePill(pillOn);});}
+  addEventListener('resize',function(){placePill(pillOn);});
+  function onScene(el){
+    var scName = (SCENE_NAMES[currentLang] && SCENE_NAMES[currentLang][el.dataset.scene]) || el.dataset.sl || '';
+    if(chip){chip.querySelector('span').textContent=scName;chip.querySelector('.sc-ic').innerHTML=ICON[el.dataset.scene]||'';}
+    var ri=-1,y=docTop(el);railSecs.forEach(function(s,i){if(docTop(s)<=y+10)ri=i;});ri=Math.max(0,ri);
+    dots.forEach(function(d,i){var on=i===ri;d.classList.toggle('on',on);d.classList.toggle('past',i<ri);if(on)d.setAttribute('aria-current','true');else d.removeAttribute('aria-current');
+      if(i>=ri&&segs[i])segs[i].style.setProperty('--f','0');});
+    /* label suasana baru muncul sebentar di samping rail */
+    if(ri!==railOn){railOn=ri;var d0=dots[ri];if(railTop.length&&d0){dots.forEach(function(d){d.classList.remove('peek');});d0.classList.add('peek');clearTimeout(peekT);peekT=setTimeout(function(){d0.classList.remove('peek');},1800);}}
+    root.style.setProperty('--acc',ICON_COLOR[el.dataset.scene]||'#FDB773');
+    var sec=el.closest('section')||el.nextElementSibling;pillOn=null;
+    navA.forEach(function(a){var on=sec&&a.getAttribute('href')==='#'+sec.id;a.classList.toggle('on',on);if(on)pillOn=a;});
+    placePill(pillOn);
+  }
+
+  /* jam dinding bertema tanaman merambat: sulur melingkari bingkai, daun dan bunga berganti warna mengikuti musim,
+     embun saat hujan, salju menumpuk di atas bingkai. Jarum ikut jam langit */
+  var wclock=$('#wclock'),wcH=$('#wcH'),wcM=$('#wcM'),wcL=$('#wcL'),wcT=$('#wcT'),wcV=$('#wcV'),lastClock='',lastSeason='';
+  (function(){
+    var NS='http://www.w3.org/2000/svg',RAD=Math.PI/180;
+    function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);(p||wcV).appendChild(e);return e;}
+    function at(t,r){return [r*Math.sin(t*RAD),-r*Math.cos(t*RAD)];}
+    function rv(t){return 49+2.2*Math.sin(t*RAD*7);}
+    /* penanda: bunga kecil di 12-3-6-9, kuncup daun di jam lainnya */
+    for(var i=0;i<12;i++){
+      if(i%3===0){var g=el('g',{transform:'rotate('+i*30+') translate(0 -37.5)'},wcT);
+        for(var k=0;k<5;k++)el('ellipse',{'class':'wc-pt',rx:1.6,ry:2.7,transform:'rotate('+k*72+') translate(0 -2.3)'},g);el('circle',{'class':'wc-ctr',r:1.3},g);}
+      else el('use',{href:'#wcLeaf','class':'wc-tk',transform:'rotate('+i*30+') translate(0 -34.5) scale(.3)'},wcT);
+    }
+    /* salju menumpuk di atas bingkai */
+    var sd='',t;for(t=-58;t<=58;t+=4){var p=at(t,52.4+(1-Math.abs(t)/58)*1.6);sd+=(t===-58?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1);}
+    for(t=58;t>=-58;t-=3){var q=at(t,46.6+1.1*Math.sin(t*.7));sd+='L'+q[0].toFixed(1)+' '+q[1].toFixed(1);}
+    el('path',{d:sd+'Z','class':'wc-snow'});
+    /* batang sulur bergelombang, ~300 derajat */
+    var A0=205,A1=505,d='';
+    for(t=A0;t<=A1;t+=3){var s=at(t,rv(t));d+=(t===A0?'M':'L')+s[0].toFixed(2)+' '+s[1].toFixed(2);}
+    el('path',{d:d,'class':'wc-stem'});
+    el('path',{d:d,'class':'wc-stem2'});
+    /* sulur pilin kecil */
+    [236,322,398,472].forEach(function(t,j){var s=at(t,rv(t)),g=el('g',{transform:'translate('+s[0].toFixed(2)+' '+s[1].toFixed(2)+') rotate('+(t+(j%2?-30:30))+') scale('+(j%2?-1:1)+' 1)'});
+      el('path',{d:'M0 0C0-4 1.5-7.5 4.6-8.2 7.4-8.8 8.4-5.6 6.4-4.2 4.8-3.1 3.6-4.6 4.7-5.6','class':'wc-tendril'},g);});
+    /* daun berselang-seling keluar dan ke dalam bingkai */
+    var n=0;
+    for(t=A0+5;t<A1-2;t+=11.5){var side=n%2?1:-1,s2=at(t,rv(t)),sc=(.72+.2*Math.sin(n*1.7)+(side<0?-.12:0)).toFixed(2),rot=t+(side>0?40:140)+Math.sin(n*2.3)*14;
+      var lg=el('g',{transform:'translate('+s2[0].toFixed(2)+' '+s2[1].toFixed(2)+') rotate('+rot.toFixed(1)+') scale('+sc+')'});
+      el('use',{href:'#wcLeaf','class':'wc-leaf'+(n%3===0?' b':''),style:'--d:'+((n*.73)%4).toFixed(2)+'s'},lg);
+      el('path',{d:'M0-1.5L0-12.5M0-5L-2.4-8M0-8L2.2-10.6','class':'wc-vein'},lg);
+      if(n%3===1)el('circle',{cx:1.8,cy:-8.5,r:1.6,'class':'wc-drop'},lg);
+      n++;}
+    /* bunga di sepanjang sulur */
+    [258,346,428,494].forEach(function(t,j){var s=at(t,rv(t)+1),g=el('g',{'class':'wc-fl',transform:'translate('+s[0].toFixed(2)+' '+s[1].toFixed(2)+') rotate('+(t*2)+') scale('+(j%2?.85:1)+')'});
+      for(var k=0;k<5;k++)el('ellipse',{rx:2.1,ry:3.3,transform:'rotate('+k*72+') translate(0 -2.8)'},g);el('circle',{r:1.5,'class':'wc-ctr'},g);});
+  })();
+  /* bingkai sulur untuk kapsul navigasi atas dan rail, senada dengan jam: batang bergelombang menyusuri tepi kapsul,
+     daun mencuat ke luar, bunga, embun saat hujan, salju menumpuk di tepi atas. Dibangun ulang saat ukuran kapsul berubah */
+  var LEAF='M0 0C-3.6-2.2-6.4-6.6-4.6-10.6-3.4-13.2-1.2-13.4 0-15.6 1.2-13.4 3.4-13.2 4.6-10.6 6.4-6.6 3.6-2.2 0 0Z';
+  function vineFrame(host,R,runs,seed){
+    if(!host)return;
+    var NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg'),lw=0,lh=0,P=12;
+    svg.setAttribute('class','vframe');svg.setAttribute('aria-hidden','true');host.appendChild(svg);
+    function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;}
+    function f2(v){return v.toFixed(1);}
+    function build(){
+      var w=host.offsetWidth,h=host.offsetHeight;if(!w||!h||(Math.abs(w-lw)<2&&Math.abs(h-lh)<2))return;lw=w;lh=h;
+      svg.setAttribute('viewBox','0 0 '+(w+2*P)+' '+(h+2*P));while(svg.firstChild)svg.removeChild(svg.firstChild);
+      var r=R.map(function(v){return Math.min(v,h/2,w/2);}),x0=P,y0=P,x1=P+w,y1=P+h;
+      var d='M'+(x0+r[0])+' '+y0+'H'+(x1-r[1])+'A'+r[1]+' '+r[1]+' 0 0 1 '+x1+' '+(y0+r[1])+'V'+(y1-r[2])+'A'+r[2]+' '+r[2]+' 0 0 1 '+(x1-r[2])+' '+y1+
+        'H'+(x0+r[3])+'A'+r[3]+' '+r[3]+' 0 0 1 '+x0+' '+(y1-r[3])+'V'+(y0+r[0])+'A'+r[0]+' '+r[0]+' 0 0 1 '+(x0+r[0])+' '+y0+'Z';
+      var guide=el('path',{d:d,fill:'none',stroke:'none'}),L=guide.getTotalLength(),n=0;
+      runs.forEach(function(run,ri){
+        var pts=[],a=run[0]*L,b=run[1]*L,s,i;
+        for(s=a;s<=b;s+=4){var q=guide.getPointAtLength(((s%L)+L)%L);pts.push([q.x,q.y]);}
+        if(pts.length<3)return;
+        var N=pts.map(function(p,i){var A=pts[Math.max(0,i-1)],B=pts[Math.min(pts.length-1,i+1)],tx=B[0]-A[0],ty=B[1]-A[1],l=Math.hypot(tx,ty)||1;return [tx/l,ty/l,ty/l,-tx/l];});
+        var S=pts.map(function(p,i){var o=1.5*Math.sin(i*.55+seed+ri*2);return [p[0]+N[i][2]*o,p[1]+N[i][3]*o];});
+        var sd='';S.forEach(function(p,i){sd+=(i?'L':'M')+f2(p[0])+' '+f2(p[1]);});
+        el('path',{d:sd,'class':'wc-stem'});
+        for(i=2;i<S.length-2;i+=3){
+          var t=N[i],side=n%2?1:-1,ang=(side>0?.6:-.6)+Math.sin(n*1.9+seed)*.25,out=n%5===4?-.35:1;
+          var vx=(t[2]*Math.cos(ang)+t[0]*Math.sin(ang))*out,vy=(t[3]*Math.cos(ang)+t[1]*Math.sin(ang))*out;
+          if(out<0){vx=t[0]*side*.8-t[2]*.3;vy=t[1]*side*.8-t[3]*.3;}
+          var rot=Math.atan2(vx,-vy)*180/Math.PI,sc=(out<0?.42:.6+.18*Math.sin(n*1.3+seed)).toFixed(2);
+          var g=el('g',{transform:'translate('+f2(S[i][0])+' '+f2(S[i][1])+') rotate('+rot.toFixed(0)+') scale('+sc+')'});
+          el('path',{d:LEAF,'class':'wc-leaf'+(n%3===0?' b':''),style:'--d:'+((n*.71)%4).toFixed(2)+'s'},g);
+          el('path',{d:'M0-1.5L0-12.5M0-5L-2.4-8M0-8L2.2-10.6','class':'wc-vein'},g);
+          if(n%4===1)el('circle',{cx:1.8,cy:-8.5,r:1.7,'class':'wc-drop'},g);
+          if(n%7===3){var fg=el('g',{'class':'wc-fl',transform:'translate('+f2(S[i+1][0])+' '+f2(S[i+1][1])+') rotate('+(n*37%360)+') scale(.8)'});
+            for(var k=0;k<5;k++)el('ellipse',{rx:2.1,ry:3.2,transform:'rotate('+k*72+') translate(0 -2.7)'},fg);el('circle',{r:1.4,'class':'wc-ctr'},fg);}
+          if(n%9===5)el('path',{d:'M0 0C0-4 1.5-7.5 4.6-8.2 7.4-8.8 8.4-5.6 6.4-4.2 4.8-3.1 3.6-4.6 4.7-5.6','class':'wc-tendril',
+            transform:'translate('+f2(S[i][0])+' '+f2(S[i][1])+') rotate('+(rot+180*(side<0)).toFixed(0)+') scale(.9)'});
+          n++;
+        }
+        /* salju di tepi yang menghadap ke atas */
+        for(i=1;i<S.length-1;i+=2)if(N[i][3]<-.75)el('ellipse',{cx:f2(S[i][0]),cy:f2(S[i][1]-1.6),rx:(4+2*Math.abs(Math.sin(i*.9))).toFixed(1),ry:'2.4','class':'wc-snow'});
+      });
+      svg.removeChild(guide);
+    }
+    build();
+    if(window.ResizeObserver)new ResizeObserver(function(){requestAnimationFrame(build);}).observe(host);
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(build);
+  }
+  vineFrame($('.nav-in'),[20,56,20,56],[[.9,1.07],[.445,.585]],1.3);
+  vineFrame(rail,[24,24,24,24],[[-.05,.1],[.58,.97]],4.1);
+  function clock(h){
+    var sea=T.scene;if(sea!==lastSeason){lastSeason=sea;root.setAttribute('data-s',sea);}
+    var hr=((h%24)+24)%24,hh=Math.floor(hr),mm=Math.floor((hr-hh)*60),s=(hh<10?'0':'')+hh+'.'+(mm<10?'0':'')+mm;
+    if(s===lastClock)return;lastClock=s;
+    wcH.setAttribute('transform','rotate('+((hr%12)*30).toFixed(1)+')');wcM.setAttribute('transform','rotate('+((hr%1)*360).toFixed(1)+')');wcL.textContent=s;
+  }
+
+  /* ---------- parallax DOM (properti translate, terpisah dari transform animasi masuk) ---------- */
+  var lastPY=[];
+  function parallax(){
+    if(reduce)return;
+    var c=scrollY+innerHeight*.5,k=innerWidth<700?.5:1;
+    for(var i=0;i<par.length;i++){
+      var y=(parTop[i]-c)*-(+par[i].dataset.speed)*k;y=Math.round(y*10)/10;
+      if(lastPY[i]!==y){lastPY[i]=y;par[i].style.translate='0 '+y+'px';}
+    }
+    if(band){var x=(bandTop-scrollY)*.45-innerWidth*.15;band.style.transform='translate3d('+x.toFixed(1)+'px,0,0)';}
+  }
+
+  /* ---------- anotasi pada objek 3D ---------- */
+  var cos=$$('.co').map(function(el){return {el:el,k:el.dataset.a,on:false};});
+  function annotate(){
+    if(innerWidth<1000)return;
+    var A=US.anchors,focus=document.body.classList.contains('focus');
+    cos.forEach(function(c){
+      var a=A[c.k],on=!!(a&&a.on)&&!focus;
+      if(on){c.el.style.transform='translate3d('+a.x.toFixed(1)+'px,'+a.y.toFixed(1)+'px,0)';var left=a.x>innerWidth-420;if(left!==c.left){c.left=left;c.el.classList.toggle('l',left);}}
+      if(on!==c.on){c.on=on;c.el.classList.toggle('on',on);}
+    });
+  }
+
+  /* ---------- animasi masuk ---------- */
+  function splitWords(el){
+    var wi=0;
+    [].slice.call(el.childNodes).forEach(function(n){
+      if(n.nodeType===3){
+        var frag=document.createDocumentFragment();
+        n.textContent.split(/(\s+)/).forEach(function(w){
+          if(!w)return;if(/^\s+$/.test(w)){frag.appendChild(document.createTextNode(' '));return;}
+          var o=document.createElement('span'),i=document.createElement('span');o.className='w';i.textContent=w;i.style.setProperty('--wi',wi++);o.appendChild(i);frag.appendChild(o);
+        });
+        el.replaceChild(frag,n);
+      }else if(n.nodeType===1){
+        var words=n.textContent.split(/\s+/).filter(Boolean);n.textContent='';
+        words.forEach(function(w,ix){var o=document.createElement('span'),i=document.createElement('span');o.className='w';i.textContent=w;i.style.setProperty('--wi',wi++);o.appendChild(i);n.appendChild(o);if(ix<words.length-1)n.appendChild(document.createTextNode(' '));});
+      }
+    });
+  }
+  var rvs=$$('.rv'),splits=$$('.split'),vines=$$('.vine-wrap'),ranges=$$('.range');
+  vines.forEach(function(v){var p=v.querySelector('path');if(p&&p.getTotalLength)v.style.setProperty('--len',Math.ceil(p.getTotalLength()*1.2));});
+  if(reduce||!('IntersectionObserver' in window)){
+    rvs.concat(splits,vines,ranges).forEach(function(el){el.classList.add('in');});
+  }else{
+    splits.forEach(splitWords);
+    /* stagger: anggota satu induk muncul berurutan */
+    var groups=new Map();rvs.forEach(function(el){var p=el.parentNode,g=groups.get(p)||0;el.style.setProperty('--i',g);groups.set(p,g+1);});
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12,rootMargin:'0px 0px -6% 0px'});
+    rvs.concat(splits,vines,ranges).forEach(function(el){io.observe(el);});
+  }
+
+  /* angka statistik menghitung naik saat hero tampil */
+  if(!reduce){
+    $$('[data-count]').forEach(function(el){
+      var to=+el.dataset.count,suf=el.dataset.suffix||'',t0=null;
+      function step(t){if(t0===null)t0=t;var k=Math.min(1,(t-t0-500)/1600);if(k<0){requestAnimationFrame(step);return;}var e=1-Math.pow(1-k,4);el.textContent=Math.round(to*e)+suf;if(k<1)requestAnimationFrame(step);}
+      el.textContent='0'+suf;requestAnimationFrame(step);
+    });
+  }
+
+  /* navigasi bersembunyi saat menggulir ke bawah, muncul saat ke atas */
+  var nav=$('#nav'),navHidden=false,navSc=null,lastY=scrollY;
+  function navAuto(y){var sc=y>40;if(sc!==navSc){navSc=sc;nav.classList.toggle('scrolled',sc);}var dy=y-lastY;if(Math.abs(dy)<4)return;var hide=dy>0&&y>innerHeight*.6&&!mNav.classList.contains('open');if(hide!==navHidden){navHidden=hide;nav.classList.toggle('hide',hide);}lastY=y;}
+
+  /* di layar sempit jam disembunyikan selama menggulir, muncul lagi 0,7 detik setelah berhenti */
+  var awayT=null,isAway=false;
+  function clockAway(){if(innerWidth>700||prevY<0)return;if(!isAway){isAway=true;wclock.classList.add('away');}
+    clearTimeout(awayT);awayT=setTimeout(function(){isAway=false;wclock.classList.remove('away');},700);}
+
+  /* ---------- loop tunggal ---------- */
+  var prevY=-1;
+  function loop(t){
+    if(lenis)lenis.raf(t);
+    var y=scrollY;
+    if(y!==prevY){US.dirty=true;clockAway();bar.style.transform='scaleX('+US.prog.toFixed(4)+')';navAuto(y);railFill();}
+    US.vel=lenis?lenis.velocity:(prevY<0?0:y-prevY);prevY=y;
+    pick();parallax();
+    if(US.frame)US.frame(t);else US.hour=T.hour;
+    clock(US.hour);annotate();
+    requestAnimationFrame(loop);
+  }
+
+  /* tautan langsung (#hasil dsb.): langsung ke bagian itu dengan suasananya, tanpa animasi dari fajar */
+  function initHash(){var id=location.hash&&decodeURIComponent(location.hash.slice(1)),t=id&&document.getElementById(id);if(t){measure();goTo(t,true);}}
+  if(document.readyState==='complete')initHash();else addEventListener('load',initHash);
+  pick();
+  requestAnimationFrame(loop);
+})();

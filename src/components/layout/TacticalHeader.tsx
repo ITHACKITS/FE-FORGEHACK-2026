@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { RefreshCw, PanelRight, Layers, Menu, X } from "lucide-react";
+import { RefreshCw, PanelRight, Layers, Menu, X, Home, Globe } from "lucide-react";
 import { api } from "../../services/api";
 import type { SummaryKpiResponse } from "../../types/api";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface TacticalHeaderProps {
   onResetView?: () => void;
@@ -17,6 +18,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
   onToggleLegend,
   isLegendOpen = false
 }) => {
+  const { lang, toggleLang, t } = useLanguage();
   const [clockWib, setClockWib] = useState("--:--:-- WIB");
   const [clockUtc, setClockUtc] = useState("--:--:-- UTC");
   const [kpi, setKpi] = useState<SummaryKpiResponse | null>(null);
@@ -72,7 +74,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
     setIsSyncing(true);
     try {
       const res = await api.syncLive();
-      setSyncStatus(`Synced (${res.latency_ms || 92}ms)`);
+      setSyncStatus(`${t.synced} (${res.latency_ms || 92}ms)`);
       await loadKpi();
     } catch {
       setSyncStatus("Failed");
@@ -88,11 +90,15 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
         className="pointer-events-auto w-full max-w-7xl mx-auto aurora-glass-card rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between transition-all duration-300 shadow-2xl"
       >
         {/* Brand Logo & Title */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <a
+          href="/"
+          className="flex items-center gap-2 sm:gap-2.5 shrink-0 hover:opacity-90 transition group cursor-pointer"
+          title={t.backToLanding}
+        >
           <img
             src="/Logo.png"
             alt="StandbAI Logo"
-            className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0 drop-shadow-md select-none pointer-events-none"
+            className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0 drop-shadow-md select-none group-hover:scale-105 transition-transform"
           />
           <div className="flex items-center gap-1.5">
             <span className="font-extrabold text-sm sm:text-base tracking-tight text-white drop-shadow-sm">
@@ -102,7 +108,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
               INDONESIA
             </span>
           </div>
-        </div>
+        </a>
 
         {/* Telemetry Badges (Desktop / Tablet view) */}
         <div className="hidden lg:flex items-center gap-2.5">
@@ -114,7 +120,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
               <path d="M2 22L12 2l10 20H2z" />
               <path d="M12 9v4" />
             </svg>
-            <span className="text-[11px] font-medium text-slate-300">Alert Volcanoes:</span>
+            <span className="text-[11px] font-medium text-slate-300">{t.alertVolcanoes}:</span>
             <strong className="font-mono font-bold text-xs text-rose-400">{volcanoAlertCount}</strong>
           </div>
 
@@ -125,13 +131,33 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             <svg className="w-3.5 h-3.5 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M12 2c-4 4-6 8-6 12 0 4.4 3.6 8 8 8s8-3.6 8-8c0-3-2-6-5-8-1 3-3 4-5 2z" />
             </svg>
-            <span className="text-[11px] font-medium text-slate-300">Hotspots (24h):</span>
+            <span className="text-[11px] font-medium text-slate-300">{t.hotspots}:</span>
             <strong className="font-mono font-bold text-xs text-amber-400">{fireCount}</strong>
           </div>
         </div>
 
         {/* Action Controls & Digital Clock */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
+          {/* Back to Landing Page Button */}
+          <a
+            href="/"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer aurora-btn border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/20 shadow-sm"
+            title={t.backToLanding}
+          >
+            <Home className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="hidden sm:inline">{t.landingPage}</span>
+          </a>
+
+          {/* Language Switcher Toggle (EN | ID) */}
+          <button
+            onClick={toggleLang}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer aurora-btn border border-cyan-500/40 text-cyan-300 hover:text-white hover:bg-cyan-500/20"
+            title={`Switch to ${lang === "en" ? "Bahasa Indonesia" : "English"}`}
+          >
+            <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="font-mono tracking-wider">{lang.toUpperCase()}</span>
+          </button>
+
           {/* Dual Digital Clock */}
           <div className="text-right font-mono text-[11px] hidden md:block leading-tight text-slate-200">
             <div className="font-bold">{clockWib}</div>
@@ -146,7 +172,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             title="Sync live NASA FIRMS & Open-Meteo data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-rose-400" : "text-emerald-400"}`} />
-            <span className="hidden md:inline">{syncStatus || "Live Sync"}</span>
+            <span className="hidden md:inline">{syncStatus || t.liveSync}</span>
           </button>
 
           {/* Map Legend Button */}
@@ -158,7 +184,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             title="Toggle Map Legend"
           >
             <Layers className="w-3.5 h-3.5 text-purple-300" />
-            <span className="hidden xs:inline">Legend</span>
+            <span className="hidden xs:inline">{t.mapLegend}</span>
           </button>
 
           {/* Impact Projection Button */}
@@ -170,7 +196,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             title="Toggle Impact Projection Drawer"
           >
             <PanelRight className="w-3.5 h-3.5 text-rose-300" />
-            <span className="hidden sm:inline">Impact Projection</span>
+            <span className="hidden sm:inline">{t.analyticsDrawer}</span>
           </button>
 
           {/* Mobile Menu Toggle Button */}
@@ -203,7 +229,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
                 <path d="M12 9v4" />
               </svg>
               <div>
-                <span className="text-[10px] block text-slate-400">Alert Volcanoes</span>
+                <span className="text-[10px] block text-slate-400">{t.alertVolcanoes}</span>
                 <strong className="font-mono text-xs text-rose-300">{volcanoAlertCount} Active</strong>
               </div>
             </div>
@@ -213,7 +239,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
                 <path d="M12 2c-4 4-6 8-6 12 0 4.4 3.6 8 8 8s8-3.6 8-8c0-3-2-6-5-8-1 3-3 4-5 2z" />
               </svg>
               <div>
-                <span className="text-[10px] block text-slate-400">Hotspots</span>
+                <span className="text-[10px] block text-slate-400">{t.hotspots}</span>
                 <strong className="font-mono text-xs text-amber-300">{fireCount} Active</strong>
               </div>
             </div>
@@ -229,7 +255,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             className="w-full py-2 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer aurora-btn"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin text-rose-400" : "text-emerald-400"}`} />
-            <span>{syncStatus || "Live Sync Sensors"}</span>
+            <span>{syncStatus || t.liveSync}</span>
           </button>
         </div>
       )}

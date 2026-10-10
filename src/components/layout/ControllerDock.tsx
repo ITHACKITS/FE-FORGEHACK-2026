@@ -3,6 +3,7 @@ import { Zap, Play, Printer, ChevronDown, ChevronUp, SlidersHorizontal } from "l
 import type { HazardType, ModelingMode, SimulationOverrides } from "../../types/api";
 import { api } from "../../services/api";
 import { CONFIG } from "../../config/constants";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface ControllerDockProps {
   hazard: HazardType;
@@ -35,6 +36,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
   progressText,
   activeRunId
 }) => {
+  const { lang } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     return typeof window !== "undefined" && window.innerWidth < 640;
   });
@@ -96,14 +98,18 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
             <Zap className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
-            <span className="font-extrabold text-xs block text-white">Simulation Control Center</span>
-            <span className="text-[10px] font-medium text-slate-400">Lagrangian RK2 Model (15 Ensembles)</span>
+            <span className="font-extrabold text-xs block text-white">
+              {lang === "id" ? "Pusat Kendali Simulasi" : "Simulation Control Center"}
+            </span>
+            <span className="text-[10px] font-medium text-slate-400">
+              {lang === "id" ? "Model Lagrangian RK2 (15 Ensemble)" : "Lagrangian RK2 Model (15 Ensembles)"}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-1">
           {isCollapsed && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-600 to-rose-600 text-white animate-pulse sm:hidden">
-              Open
+              {lang === "id" ? "Buka" : "Open"}
             </span>
           )}
           <button
@@ -113,7 +119,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
               setIsCollapsed(!isCollapsed);
             }}
             className="p-1.5 rounded-lg transition cursor-pointer hover:bg-white/10 text-slate-300"
-            title={isCollapsed ? "Open Panel" : "Collapse Panel"}
+            title={isCollapsed ? (lang === "id" ? "Buka Panel" : "Open Panel") : (lang === "id" ? "Tutup Panel" : "Collapse Panel")}
           >
             {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
           </button>
@@ -126,22 +132,22 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
           {/* Hazard Selection */}
           <div>
             <label className="block text-[11px] font-bold mb-1.5 text-slate-300">
-              Atmospheric Hazard Type:
+              {lang === "id" ? "Jenis Bencana Atmosferik:" : "Atmospheric Hazard Type:"}
             </label>
             <select
               value={hazard}
               onChange={(e) => onHazardChange(e.target.value as HazardType)}
               className="w-full rounded-xl px-3 py-2 text-xs outline-none transition font-medium bg-black/40 border border-white/15 text-white shadow-xs focus:border-purple-400"
             >
-              <option value="volcano">🌋 Volcanic Eruption (Ash Plume)</option>
-              <option value="fire">🔥 Peatland Wildfire (PM2.5 Smoke)</option>
+              <option value="volcano">🌋 {lang === "id" ? "Erupsi Gunung Api (Abu Vulkanik)" : "Volcanic Eruption (Ash Plume)"}</option>
+              <option value="fire">🔥 {lang === "id" ? "Kebakaran Gambut (Asap PM2.5)" : "Peatland Wildfire (PM2.5 Smoke)"}</option>
             </select>
           </div>
 
           {/* Event Location Selection */}
           <div>
             <label className="block text-[11px] font-bold mb-1.5 text-slate-300">
-              Hazard Location (National):
+              {lang === "id" ? "Lokasi Bahaya (Nasional):" : "Hazard Location (National):"}
             </label>
             <select
               value={eventId}
@@ -207,7 +213,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
           {/* Mode Switcher */}
           <div>
             <label className="block text-[11px] font-bold mb-1.5 text-slate-300">
-              Modeling Mode:
+              {lang === "id" ? "Mode Pemodelan:" : "Modeling Mode:"}
             </label>
             <div className="grid grid-cols-2 rounded-xl p-1 text-center text-xs bg-black/40 border border-white/10 shadow-xs">
               <button
@@ -223,7 +229,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                   color: "rgba(255, 255, 255, 0.6)"
                 }}
               >
-                Auto (Real Data)
+                {lang === "id" ? "Otomatis (Data Nyata)" : "Auto (Real Data)"}
               </button>
               <button
                 type="button"
@@ -238,7 +244,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                   color: "rgba(255, 255, 255, 0.6)"
                 }}
               >
-                What-If Experiment
+                {lang === "id" ? "Eksperimen Skenario" : "What-If Experiment"}
               </button>
             </div>
           </div>
@@ -248,13 +254,13 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
             <div className="rounded-xl p-3 space-y-2.5 text-xs bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-purple-300 font-bold text-xs">
                 <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>What-If Scenario Parameters</span>
+                <span>{lang === "id" ? "Parameter Skenario Eksperimen" : "What-If Scenario Parameters"}</span>
               </div>
 
               {hazard === "volcano" ? (
                 <div>
                   <label className="text-[10px] font-medium block mb-1 text-slate-300">
-                    Column Height (km above crater):
+                    {lang === "id" ? "Tinggi Kolom (km di atas kawah):" : "Column Height (km above crater):"}
                   </label>
                   <input
                     type="number"
@@ -271,7 +277,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
               ) : (
                 <div>
                   <label className="text-[10px] font-medium block mb-1 text-slate-300">
-                    Fire Radiative Power Scale (FRP %): {overrides.frp_scale ? overrides.frp_scale * 100 : 100}%
+                    {lang === "id" ? "Skala Radiasi Api (FRP %):" : "Fire Radiative Power Scale (FRP %):"} {overrides.frp_scale ? overrides.frp_scale * 100 : 100}%
                   </label>
                   <input
                     type="range"
@@ -296,13 +302,13 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
                     }
                     className="rounded accent-purple-400"
                   />
-                  <span>Reverse Tropospheric Wind (180°)</span>
+                  <span>{lang === "id" ? "Pembalikan Arah Angin Troposfer (180°)" : "Reverse Tropospheric Wind (180°)"}</span>
                 </label>
               </div>
 
               <div>
                 <label className="text-[10px] font-medium block mb-1 text-slate-300">
-                  Rain Wet Deposition Rate (mm/h):
+                  {lang === "id" ? "Laju Deposisi Basah Hujan (mm/jam):" : "Rain Wet Deposition Rate (mm/h):"}
                 </label>
                 <input
                   type="number"
@@ -326,7 +332,11 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
             className="w-full py-3 px-4 aurora-pill aurora-btn font-extrabold text-xs tracking-wide flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-60 text-white shadow-xl active:scale-98"
           >
             <Zap className={`w-4 h-4 text-emerald-400 ${isRunning ? "animate-spin" : ""}`} />
-            <span>{isRunning ? "CALCULATING PLUME..." : "RUN DISPERSION SIMULATION"}</span>
+            <span>
+              {isRunning
+                ? (lang === "id" ? "MENGHITUNG SEBARAN..." : "CALCULATING PLUME...")
+                : (lang === "id" ? "JALANKAN SIMULASI ENSEMBLE" : "RUN DISPERSION SIMULATION")}
+            </span>
           </button>
 
           {/* Action Row */}
@@ -337,7 +347,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
               className="py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer aurora-btn text-white shadow-xs"
             >
               <Play className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-              <span>Play Demo</span>
+              <span>{lang === "id" ? "Putar Demo" : "Play Demo"}</span>
             </button>
             <button
               onClick={() => {
@@ -350,7 +360,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
               className="py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer aurora-btn text-white shadow-xs"
             >
               <Printer className="w-3.5 h-3.5 text-purple-300" />
-              <span>Export Report</span>
+              <span>{lang === "id" ? "Unduh Laporan" : "Export Report"}</span>
             </button>
           </div>
 

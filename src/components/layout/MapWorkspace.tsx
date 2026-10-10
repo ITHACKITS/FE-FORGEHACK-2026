@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Compass, Plus, Minus, Layers, X, LocateFixed, User, Eye, RotateCcw, Info } from "lucide-react";
+import { Plus, Minus, Layers, X, LocateFixed, User, Eye, RotateCcw, Info } from "lucide-react";
 import { CONFIG } from "../../config/constants";
 import { api } from "../../services/api";
 import { formatHour } from "../../utils/formatters";
 import type { HazardType } from "../../types/api";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface MapWorkspaceProps {
   hazard: HazardType;
@@ -28,6 +29,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   resetViewTrigger,
   onToggleLegend: _onToggleLegend
 }) => {
+  const { lang } = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 
@@ -672,9 +674,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         >
           <div className="flex items-center justify-between border-b pb-2 mb-0.5 border-white/10">
             <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-300">
-              Active Spatial Layers
+              {lang === "id" ? "Lapisan Spasial Aktif" : "Active Spatial Layers"}
             </h3>
-            <button onClick={() => setIsLayerPanelOpen(false)} className="text-slate-400 hover:text-white transition cursor-pointer p-0.5" title="Hide Panel">
+            <button onClick={() => setIsLayerPanelOpen(false)} className="text-slate-400 hover:text-white transition cursor-pointer p-0.5" title={lang === "id" ? "Tutup Panel" : "Hide Panel"}>
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -682,37 +684,37 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showVolcanoes} onChange={(e) => setShowVolcanoes(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/1_normal.png" className="w-4 h-4 object-contain" />
-            <span>PVMBG Volcanoes</span>
+            <span>{lang === "id" ? "Gunung Api PVMBG" : "PVMBG Volcanoes"}</span>
           </label>
           
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showHotspots} onChange={(e) => setShowHotspots(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/titik_api.png" className="w-4 h-4 object-contain" />
-            <span>NASA FIRMS Hotspots</span>
+            <span>{lang === "id" ? "Titik Panas NASA FIRMS" : "NASA FIRMS Hotspots"}</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showPlume} onChange={(e) => setShowPlume(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(253, 183, 115, 0.3)", border: "1px dashed #FDB773" }}></div>
-            <span>Dispersion Probability</span>
+            <span>{lang === "id" ? "Peluang Sebaran (Ensemble)" : "Dispersion Probability"}</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showSchools} onChange={(e) => setShowSchools(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/school.png" className="w-4 h-4 object-contain" />
-            <span>School Facilities</span>
+            <span>{lang === "id" ? "Fasilitas Sekolah" : "School Facilities"}</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showHospitals} onChange={(e) => setShowHospitals(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/hospital.png" className="w-4 h-4 object-contain" />
-            <span>Healthcare Facilities</span>
+            <span>{lang === "id" ? "Fasilitas Kesehatan" : "Healthcare Facilities"}</span>
           </label>
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showAirports} onChange={(e) => setShowAirports(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <img src="/plane.png" className="w-4 h-4 object-contain" />
-            <span>Airports</span>
+            <span>{lang === "id" ? "Bandara Udara" : "Airports"}</span>
           </label>
         </div>
       )}
