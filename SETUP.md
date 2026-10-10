@@ -14,6 +14,10 @@ cp .env.example .env        # then edit the values below
 npm run dev                 # http://localhost:5173
 ```
 
+## Run the whole stack with Docker
+
+To run the backend, AI service and web app together, clone the three repos side by side and use the Compose file in the backend repo: see [`BE-FORGEHACK-2026/SETUP.md`](https://github.com/ITHACKITS/BE-FORGEHACK-2026/blob/main/SETUP.md#run-the-full-stack-with-docker-compose-be--ai--fe).
+
 ## Environment variables
 
 Vite only exposes variables that start with `VITE_`. **Never put secrets here**: everything ends up in the browser bundle.
