@@ -15,6 +15,7 @@ import { EXPOSURE_TIER_COLORS } from "../../simulation/smokeExposureRenderer";
 import { clearSmoke3D, syncSmoke3D } from "../../simulation/smoke3d";
 import { NationalModes, type NationalMode } from "./NationalModes";
 import { CameraReadout, ScaleBar } from "./MapReadouts";
+import { AiBrief } from "./AiBrief";
 import { NearbyLayers, type NearbyStats, type VolcanoFeature, type Forest } from "../../simulation/nearbyLayers";
 
 interface MapWorkspaceProps {
@@ -27,6 +28,8 @@ interface MapWorkspaceProps {
   onToggleLegend?: () => void;
   /** Experiment-mode overrides that reshape the example smoke simulation (null in auto mode). */
   smokeOverrides?: SimulationOverrides | null;
+  /** Simulation-only layers and cards; hidden for demos. */
+  simTools?: boolean;
 }
 
 export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
@@ -37,7 +40,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   onSelectEvent,
   resetViewTrigger,
   onToggleLegend: _onToggleLegend,
-  smokeOverrides = null
+  smokeOverrides = null,
+  simTools = true
 }) => {
   const { lang } = useLanguage();
   const tr = useTr();
@@ -59,6 +63,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const [showHotspots, setShowHotspots] = useState(true);
   const [showAshPaths, setShowAshPaths] = useState(true);
   const [nearbyStats, setNearbyStats] = useState<NearbyStats | null>(null);
+  const [isBriefOpen, setIsBriefOpen] = useState(false);
   const [showPlume, setShowPlume] = useState(true);
   // Airports start hidden so the hazard layers read clearly; users can switch them on.
   const [showAirports, setShowAirports] = useState(false);
@@ -469,8 +474,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   }, [currentHour]);
 
   useEffect(() => {
-    smokeLayerRef.current?.setVisible(showSmoke && !is3DMode && nationalMode === "off");
-  }, [showSmoke, is3DMode, nationalMode]);
+    smokeLayerRef.current?.setVisible(simTools && showSmoke && !is3DMode && nationalMode === "off");
+  }, [simTools, showSmoke, is3DMode, nationalMode]);
 
   useEffect(() => {
     const el = map3DElementRef.current;
@@ -677,7 +682,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     const map = mapRef.current;
     if (plumeLayerRef.current) map.removeLayer(plumeLayerRef.current);
 
-    if (!showPlume) return;
+    if (!showPlume || !simTools) return;
 
     const hourKey = `hour_${currentHour}`;
     const geoData = hourlyTiersCache[hourKey] || hourlyTiersCache[currentHour] || (hourlyTiersCache.features ? hourlyTiersCache : null);
@@ -714,7 +719,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         });
       }
     }).addTo(map);
-  }, [currentHour, hourlyTiersCache, hazard, showPlume, lang, tr]);
+  }, [currentHour, hourlyTiersCache, hazard, showPlume, simTools, lang, tr]);
 
   // Calculate 3D perspective scale & translation to fill viewport seamlessly like Google Earth
   // (Only used when not in real Google Maps 3D mode)
@@ -797,10 +802,14 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         </div>
       )}
 
-      {/* 3b. Smoke simulation status: honest labelling for example data */}
-      {showSmoke && nationalMode === "off" && (
+      {/* 3b. Right column: AI brief, then the example smoke simulation status (hidden while the brief is open) */}
+      <div className="absolute top-36 sm:top-24 right-2 sm:right-4 z-[900] w-[min(360px,calc(100%-1rem))] flex flex-col items-end gap-2 pointer-events-none">
+        <div className={isBriefOpen ? "pointer-events-auto w-full" : "pointer-events-auto"}>
+          <AiBrief map={mapInstance} lang={lang} onOpenChange={setIsBriefOpen} />
+        </div>
+      {simTools && showSmoke && nationalMode === "off" && !isBriefOpen && (
         <div
-          className="absolute top-36 sm:top-24 right-2 sm:right-4 z-[900] max-w-[min(340px,calc(100%-1rem))] rounded-2xl px-3 py-2 aurora-glass-card border border-white/15 shadow-2xl text-[11px] leading-snug text-slate-200"
+          className="pointer-events-auto w-full rounded-2xl px-3 py-2 aurora-glass-card border border-white/15 shadow-2xl text-[11px] leading-snug text-slate-200"
           role="status"
         >
           <div className="flex items-center gap-2 flex-wrap">
@@ -855,6 +864,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         </div>
       )}
 
+      </div>
+
       {/* 4. Camera and coordinates readout */}
       <CameraReadout map={mapInstance} lang={lang} />
 
@@ -905,6 +916,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             <span>{lang === "id" ? "Jalur abu erupsi (72 jam)" : "Eruption ash paths (72 h)"}</span>
           </label>
 
+          {simTools && (<>
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showPlume} onChange={(e) => setShowPlume(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />
             <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(253, 183, 115, 0.3)", border: "1px dashed #FDB773" }}></div>
@@ -919,6 +931,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               {lang === "id" ? "Contoh" : "Example"}
             </span>
           </label>
+          </>)}
 
           <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer hover:opacity-80 transition select-none">
             <input type="checkbox" checked={showAirports} onChange={(e) => setShowAirports(e.target.checked)} className="w-3.5 h-3.5 accent-emerald-400" />

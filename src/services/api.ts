@@ -13,7 +13,8 @@ import type {
   ValidationResponse,
   WindFieldResponse,
   HeatmapResponse,
-  SmokePathsResponse
+  SmokePathsResponse,
+  AdviceResponse
 } from "../types/api";
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -74,6 +75,8 @@ export const api = {
   getValidation: (eventId: string) => request<ValidationResponse>(`/validation/${eventId}`),
   getTiersAtHour: (runId: string, hour: number) => request<any>(`/runs/${runId}/tiers?t=${hour}`),
   getEvents: () => request<any>("/events"),
+  getNearbyAdvice: (lat: number, lon: number, lang: "en" | "id") =>
+    request<AdviceResponse>(`/advice/nearby?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&lang=${lang}`),
   getNationalForests: () => once(() => forestsRequest, (p) => { forestsRequest = p; }, "/layers/forests"),
   playDemo: (eventId: string) => request<any>(`/demo/play/${eventId}`)
 };

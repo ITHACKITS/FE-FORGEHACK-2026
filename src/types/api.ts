@@ -193,3 +193,41 @@ export interface SmokePathsResponse {
   note?: string;
   paths: SmokePath[];
 }
+
+// GET /advice/nearby: facts near one location plus an LLM-written household brief.
+export type AdviceScenario = "ash_threat" | "smoke_threat" | "prevention" | "clear";
+
+export interface AdviceFacts {
+  location: { lat: number; lon: number };
+  volcanoes_nearby: { name: string; level: number; distance_km: number; danger_radius_km: number; inside_danger_zone: boolean }[];
+  hotspots: {
+    within_10km: number;
+    within_25km: number;
+    within_50km: number;
+    nearest_km: number | null;
+    max_frp_mw: number | null;
+    latest_date: string | null;
+  };
+  ai_detection_check: { checked: number; fire_like: number; model: string } | null;
+  fire_prone_forest: { name: string; distance_km: number; risk?: string } | null;
+  smoke_forecast: { source: string; closest_km: number; hours_from_now: number | null; near_source?: boolean } | null;
+  ash_forecast: { source: string; level?: number; closest_km: number; hours_from_now: number | null; near_source?: boolean } | null;
+  data_as_of?: { fires?: string | null; wind?: string | null };
+}
+
+export interface AdviceResponse {
+  generated_at: string;
+  scenario: AdviceScenario;
+  facts: AdviceFacts;
+  brief: {
+    headline: string;
+    summary: string;
+    actions: string[];
+    engine: "featherless" | "template";
+    model: string | null;
+    generated_at: string;
+  } | null;
+  source?: string;
+  is_example?: boolean;
+  disclaimer?: string;
+}

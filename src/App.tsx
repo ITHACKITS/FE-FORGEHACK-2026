@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { TacticalHeader } from "./components/layout/TacticalHeader";
 import { ControllerDock } from "./components/layout/ControllerDock";
 import { MapWorkspace } from "./components/layout/MapWorkspace";
@@ -60,6 +61,8 @@ export const App: React.FC = () => {
   const [validationData, setValidationData] = useState<ValidationResponse | null>(null);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  // Simulation and experiment tools stay hidden for demos; a small icon button brings them back.
+  const [showSimTools, setShowSimTools] = useState<boolean>(false);
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [progress, setProgress] = useState<Bilingual | null>(null);
@@ -235,6 +238,7 @@ export const App: React.FC = () => {
         isDrawerOpen={isDrawerOpen}
         onToggleLegend={() => setIsLegendOpen((prev) => !prev)}
         isLegendOpen={isLegendOpen}
+        showDrawerButton={showSimTools}
       />
 
       {/* Main Workspace (Zona B, C, dan D) */}
@@ -253,10 +257,11 @@ export const App: React.FC = () => {
           resetViewTrigger={resetViewTrigger}
           onToggleLegend={() => setIsLegendOpen((prev) => !prev)}
           smokeOverrides={mode === "experiment" ? overrides : null}
+          simTools={showSimTools}
         />
 
         {/* Floating Active Simulation Pill */}
-        {activeRunId && (
+        {showSimTools && activeRunId && (
           <div className="absolute top-3.5 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-full px-3.5 py-1 z-[1000] text-xs flex items-center gap-2 shadow-xl pointer-events-none">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-slate-300">{lang === "id" ? "Simulasi aktif:" : "Active simulation:"}</span>
@@ -265,7 +270,23 @@ export const App: React.FC = () => {
           </div>
         )}
 
+        {/* Small icon-only switch for the simulation tools (no visible text, so it stays out of demos) */}
+        <button
+          type="button"
+          onClick={() => setShowSimTools((v) => !v)}
+          aria-pressed={showSimTools}
+          aria-label={lang === "id"
+            ? (showSimTools ? "Sembunyikan alat simulasi" : "Tampilkan alat simulasi")
+            : (showSimTools ? "Hide simulation tools" : "Show simulation tools")}
+          className={`absolute top-16 sm:top-20 left-2 sm:left-4 z-[1001] w-7 h-7 rounded-full flex items-center justify-center aurora-glass-card border border-white/15 transition cursor-pointer hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-emerald-300 ${
+            showSimTools ? "opacity-100 text-emerald-300" : "opacity-40 text-slate-300"
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+        </button>
+
         {/* Zona B: Floating Controller Melayang di Kiri Atas Peta */}
+        {showSimTools && (
         <ControllerDock
           hazard={hazard}
           onHazardChange={handleHazardChange}
@@ -280,17 +301,21 @@ export const App: React.FC = () => {
           isRunning={isRunning}
           progressText={progressText}
           activeRunId={activeRunId}
+          topClass="top-[6.25rem] sm:top-[7.25rem]"
         />
+        )}
 
         {/* Zona C: Timeline Player Melayang di Bawah Peta */}
-        <TimelinePlayer
-          currentHour={currentHour}
-          onHourChange={setCurrentHour}
-        />
+        {showSimTools && (
+          <TimelinePlayer
+            currentHour={currentHour}
+            onHourChange={setCurrentHour}
+          />
+        )}
 
         {/* Zona D: Tabbed Inspection Dock Melayang di Kanan */}
         <AnalyticsDrawer
-          isOpen={isDrawerOpen}
+          isOpen={showSimTools && isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           impact={impactData}
           validation={validationData}
