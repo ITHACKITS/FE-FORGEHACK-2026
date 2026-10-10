@@ -66,7 +66,7 @@
     if(ctx)return;
     var AC=window.AudioContext||window.webkitAudioContext;
     if(!AC)return;
-    try{ctx=new AC();}catch(e){return;}
+    try{ctx=new AC();}catch{return;}
 
     var comp=ctx.createDynamicsCompressor();
     comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=4;comp.attack.value=.01;comp.release.value=.3;

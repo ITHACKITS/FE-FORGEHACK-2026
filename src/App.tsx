@@ -62,7 +62,7 @@ export const App: React.FC = () => {
         }));
       })
       .catch((err) => console.error("Gagal memuat poligon jam", currentHour, err));
-  }, [activeRunId, currentHour]);
+  }, [activeRunId, currentHour, hourlyTiersCache]);
 
   const handleHazardChange = (newHazard: HazardType) => {
     setHazard(newHazard);

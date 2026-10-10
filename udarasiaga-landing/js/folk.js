@@ -172,7 +172,7 @@
   function hat(g,x,y,r,d,o){
     var h=o.hat;if(!h)return;var c=hx(o.hatc||'#C23B33');
     if(h==='beanie'){
-      g.save();g.beginPath();g.ellipse(x-d*r*.05,y+r*.25,r*1.12,r*1.05,0,Math.PI*0,Math.PI);g.closePath();g.fillStyle=grad(g,x,y+r*.5,LD[0],LD[1],r,c);g.fill();
+      g.save();g.beginPath();g.ellipse(x-d*r*.05,y+r*.25,r*1.12,r*1.05,0,0,Math.PI);g.closePath();g.fillStyle=grad(g,x,y+r*.5,LD[0],LD[1],r,c);g.fill();
       g.strokeStyle=css(sh(c,-.25),.55);g.lineWidth=r*.07;for(var i=-3;i<=3;i++){g.beginPath();g.moveTo(x+i*r*.27,y+r*.3);g.lineTo(x+i*r*.24,y+r*1.1);g.stroke();}
       g.restore();limb(g,[x-d*r*1.12,y+r*.28],[x+d*r*1.08,y+r*.22],r*.24,r*.24,sh(c,o.hatb?0:-.1));
       if(o.hatb){g.fillStyle=css(o.hatb);g.fillRect(x-r*1.1,y+r*.2,r*2.2,r*.09);}
@@ -259,7 +259,7 @@
   function sandwich(g,x,y,s){for(var i=0;i<2;i++){var cx=x-.03*s+i*.06*s;poly(g,[[cx-.035*s,y],[cx+.035*s,y],[cx,y+.06*s]],css([236,206,150]));g.fillStyle=css([110,170,70]);g.fillRect(cx-.03*s,y+.012*s,.06*s,.008*s);g.fillStyle=css([230,120,110]);g.fillRect(cx-.025*s,y+.022*s,.05*s,.007*s);}}
   function steamTex(ph){return cv(.3,.55,.15,0,function(g){
     for(var i=0;i<3;i++){var o=i*.3+ph;g.strokeStyle=css([255,255,255],.5-i*.1);g.lineWidth=.022-i*.004;g.beginPath();
-      for(var y=0;y<.5;y+=.02){var x=Math.sin(y*14+o*TAU)*.035*(y*2+.3)+(i-1)*.03;y?g.lineTo(x,y):g.moveTo(x,y);}g.stroke();}
+      for(var y=0;y<.5;y+=.02){var x=Math.sin(y*14+o*TAU)*.035*(y*2+.3)+(i-1)*.03;if(y)g.lineTo(x,y);else g.moveTo(x,y);}g.stroke();}
     var gr=g.createLinearGradient(0,0,0,.5);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,1)');g.globalCompositeOperation='destination-out';g.fillStyle=gr;g.fillRect(-.2,0,.4,.55);});}
 
   /* anjing golden: siklus lari 4 bingkai (+ bingkai duduk) */
@@ -354,7 +354,7 @@
     /* koreografi: lempar (0-.6s), bola melambung, anjing lari mengejar, kembali membawa bola, duduk menunggu */
     function fetch(t){var c=t%CY;return c;}
     E.push(ent(kid,KX,1.2,{id:'kid',upd:function(t,e){var c=fetch(t);e.f=c>.35&&c<1.0?1:0;}}));
-    E.push(ent(ballC,KX,1.2,{s:1.1,z:.2,upd:function(t,e,W){var c=fetch(t);
+    E.push(ent(ballC,KX,1.2,{s:1.1,z:.2,upd:function(t,e){var c=fetch(t);
       if(c<.45){e.a=1;e.x=KX-.18;e.oy=1.0;}
       else if(c<2.0){var u=(c-.45)/1.55;e.a=1;e.x=KX+(FX-KX)*u;e.oy=.95+2.2*u*(1-u)*1.6-u*.9;}
       else if(c<2.2){e.a=1;e.x=FX;e.oy=.06;}
@@ -367,7 +367,7 @@
     /* pelari pagi melintas di kejauhan dengan earphone */
     var runO={skin:'#9C6A45',hair:'#141010',top:'#2F8F83',tk:'tank',bot:'#24282E',bk:'shorts',shoe:'#F25C3B',hat:'phones',d:1};
     var runner=frames(8,function(p){return cv(1,1.5,.5,.03,function(g){shadow(g,0,.02,.22,.04,.22);fig(g,gait(p,true,1),runO);});});
-    E.push(ent(runner,-16,.42,{s:.86,z:.06,upd:function(t,e,W){var c=(t+6)%26;e.x=-17+c*1.45;e.f=Math.floor(t*12)%8;e.follow=1;e.a=e.x>17?0:1;}}));
+    E.push(ent(runner,-16,.42,{s:.86,z:.06,upd:function(t,e){var c=(t+6)%26;e.x=-17+c*1.45;e.f=Math.floor(t*12)%8;e.follow=1;e.a=e.x>17?0:1;}}));
     /* kakek senam pagi: 3 bingkai disilangkan halus */
     var gpO={skin:'#A9774F',hair:'#d9d6d0',top:'#F2EEE4',tk:'tee',bot:'#556070',bk:'pants',shoe:'#3A3530',glasses:true,hs:'short',grey:true,d:1};
     var gp=[cv(.9,1.6,.45,.02,function(g){shadow(g,0,.02,.25,.04,.28);fig(g,stand({el:[[-.12,.86],[.14,.86]],hn:[[-.18,.68],[.2,.68]]}),gpO);}),
@@ -408,7 +408,7 @@
     E.push(ent(girl,-.75,1.2,{fade:1,z:.16,upd:function(t,e){e.f=Math.sin(t*2.5)*.5+.5;}}));
     /* pembaca tengkurap, kaki berayun (3 bingkai) */
     var rdO={skin:'#C38D63',hair:'#3a2618',hs:'pony',top:'#7DA3C8',tk:'long',bot:'#2F3A4A',bk:'pants',shoe:'#E9E4DA',d:1};
-    var rd=frames(4,function(p,i){var a=Math.sin(p*TAU),b=Math.sin(p*TAU+1.6);return cv(1.5,.8,.75,.03,function(g){
+    var rd=frames(4,function(p){var a=Math.sin(p*TAU),b=Math.sin(p*TAU+1.6);return cv(1.5,.8,.75,.03,function(g){
       shadow(g,0,.03,.65,.06,.25);
       fig(g,{hd:[.45,.2],nk:[.33,.15],pe:[-.12,.1],sh:[[.32,.13],[.36,.11]],el:[[.36,.04],[.45,.03]],hn:[[.5,.12],[.56,.1]],
         hp:[[-.12,.11],[-.14,.09]],kn:[[-.42,.08],[-.44,.06]],an:[[-.44+.2*Math.sin(.6+a*.5),.08+.24*Math.cos(.6+a*.5)],[-.46+.2*Math.sin(.9+b*.5),.06+.24*Math.cos(.9+b*.5)]],

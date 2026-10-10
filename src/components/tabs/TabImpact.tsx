@@ -1,7 +1,7 @@
 import React from "react";
 import { formatCompactRange, formatNumber } from "../../utils/formatters";
 import type { ImpactResponse, HazardType } from "../../types/api";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 
 interface TabImpactProps {
   impact: ImpactResponse | null;

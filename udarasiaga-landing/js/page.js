@@ -458,7 +458,7 @@
       });
       root.classList.add('has-lenis');
       US.lenis=lenis;
-    }catch(e){lenis=null;}
+    }catch{lenis=null;}
   }
   var easeSnap=function(t){return 1-Math.pow(1-t,4);};
   function goTo(t,instant){

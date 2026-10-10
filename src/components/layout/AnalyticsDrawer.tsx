@@ -5,7 +5,7 @@ import { TabSchools } from "../tabs/TabSchools";
 import { TabEvac } from "../tabs/TabEvac";
 import { TabHealth } from "../tabs/TabHealth";
 import { TabScience } from "../tabs/TabScience";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 import type {
   ImpactResponse,
   FacilitiesImpactResponse,

@@ -6,7 +6,7 @@ import { CONFIG } from "../../config/constants";
 import { api } from "../../services/api";
 import { formatHour } from "../../utils/formatters";
 import type { HazardType, SimulationOverrides } from "../../types/api";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../context/useLanguage";
 import { SmokeEngine } from "../../simulation/smokeEngine";
 import { buildSmokeScenario, windFromLabel } from "../../simulation/smokeScenarios";
 import { SmokeLeafletLayer } from "../../simulation/smokeLeafletLayer";
@@ -416,6 +416,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       map.remove();
       mapRef.current = null;
     };
+  // Runs once: the Leaflet map is created on mount and torn down on unmount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Invalidate Leaflet tile bounds when 3D mode changes; mount/unmount Google Maps 3D
@@ -573,6 +575,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         }
       }
     }
+  // Only react to a new event/hazard; the loaders are recreated every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, hazard]);
 
   const loadForests = async () => {

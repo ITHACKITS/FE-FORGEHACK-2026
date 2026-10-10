@@ -222,7 +222,7 @@
     if(location.protocol==='file:')url=location.href.split(/[?#]/)[0]+'?sim='+v+'#coba';
     var successMsg = currentLang === 'en' ? 'Scenario link copied.' : 'Tautan skenario disalin.';
     var copyMsg = currentLang === 'en' ? 'Copy manually: ' : 'Salin manual: ';
-    function fallback(){var ta=document.createElement('textarea');ta.value=url;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);say(ok?successMsg:copyMsg+url);}
+    function fallback(){var ta=document.createElement('textarea');ta.value=url;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy');}catch{/* copy not allowed */}document.body.removeChild(ta);say(ok?successMsg:copyMsg+url);}
     if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(url).then(function(){say(successMsg);},fallback);else fallback();
   });
 
