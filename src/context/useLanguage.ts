@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useCallback, useContext } from "react";
 import type { Language, translations } from "../utils/translations";
 
 export interface LanguageContextType {
@@ -17,4 +17,10 @@ export const useLanguage = () => {
     throw new Error("useLanguage must be used within a LanguageProvider");
   }
   return context;
+};
+
+/** Returns tr(en, id): the English or Indonesian copy (text or JSX) for the current language. */
+export const useTr = () => {
+  const { lang } = useLanguage();
+  return useCallback(<T,>(en: T, id: T): T => (lang === "id" ? id : en), [lang]);
 };

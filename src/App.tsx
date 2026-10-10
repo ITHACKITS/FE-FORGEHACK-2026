@@ -6,6 +6,9 @@ import { TimelinePlayer } from "./components/layout/TimelinePlayer";
 import { AnalyticsDrawer } from "./components/layout/AnalyticsDrawer";
 import { LegendModal } from "./components/layout/LegendModal";
 import { api } from "./services/api";
+import { useLanguage } from "./context/useLanguage";
+import { forestName, volcanoName } from "./utils/apiLabels";
+import { buildSmokeScenario } from "./simulation/smokeScenarios";
 import type {
   HazardType,
   ModelingMode,
@@ -15,7 +18,30 @@ import type {
   ValidationResponse
 } from "./types/api";
 
+/** A status message in both languages, so it follows a language switch while shown. */
+type Bilingual = { en: string; id: string };
+
+/** Demo narration per forecast hour, written here so it exists in both languages. */
+function demoCommentary(hour: number, hazard: HazardType): Bilingual {
+  const hh = String(hour).padStart(2, "0");
+  if (hazard === "volcano") {
+    return hour === 0
+      ? { en: `T + ${hh} h: the initial eruption phase begins at the crater.`, id: `T + ${hh} jam: fase awal erupsi dimulai di kawah.` }
+      : {
+          en: `T + ${hh} h: the ash cloud has spread ~${hour * 15} km on upper-troposphere winds.`,
+          id: `T + ${hh} jam: awan abu telah menyebar sekitar ${hour * 15} km terbawa angin troposfer atas.`
+        };
+  }
+  return hour === 0
+    ? { en: `T + ${hh} h: first detection of a cluster of fire hotspots.`, id: `T + ${hh} jam: deteksi pertama klaster titik api.` }
+    : {
+        en: `T + ${hh} h: the smoke plume covers ~${(hour * 25).toLocaleString("en-US")} km², which may reduce visibility.`,
+        id: `T + ${hh} jam: sebaran asap mencakup sekitar ${(hour * 25).toLocaleString("id-ID")} km² dan dapat mengurangi jarak pandang.`
+      };
+}
+
 export const App: React.FC = () => {
+  const { lang } = useLanguage();
   const [hazard, setHazard] = useState<HazardType>("volcano");
   const [eventId, setEventId] = useState<string>("anak_krakatau_2026_09");
   const [mode, setMode] = useState<ModelingMode>("auto");
@@ -36,7 +62,8 @@ export const App: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [progressText, setProgressText] = useState<string>("");
+  const [progress, setProgress] = useState<Bilingual | null>(null);
+  const progressText = progress ? progress[lang] : "";
 
   const [resetViewTrigger, setResetViewTrigger] = useState<number>(0);
 
@@ -52,7 +79,7 @@ export const App: React.FC = () => {
           [currentHour]: geo
         }));
       })
-      .catch((err) => console.error("Gagal memuat poligon jam", currentHour, err));
+      .catch((err) => console.error("Failed to load plume tiers for hour", currentHour, err));
   }, [activeRunId, currentHour, hourlyTiersCache]);
 
   const handleHazardChange = (newHazard: HazardType) => {
@@ -64,8 +91,29 @@ export const App: React.FC = () => {
     }
   };
 
-  const [simulatedEventName, setSimulatedEventName] = useState<string>("G. Anak Krakatau");
+  const [simulatedEvent, setSimulatedEvent] = useState<{ id: string; hazard: HazardType }>({ id: "anak_krakatau_2026_09", hazard: "volcano" });
   const demoIntervalRef = React.useRef<any>(null);
+
+  // Event names for the "active simulation" pill: volcano and forest catalogues (cached by api.ts).
+  const [catalog, setCatalog] = useState<Record<string, string>>({});
+  React.useEffect(() => {
+    let cancelled = false;
+    Promise.all([api.getNationalVolcanoes().catch(() => null), api.getNationalForests().catch(() => null)]).then(([v, f]) => {
+      if (cancelled) return;
+      const names: Record<string, string> = {};
+      for (const feat of v?.features || []) {
+        const p = feat.properties || {};
+        names[p.event_id || p.id] = p.name;
+      }
+      for (const k of Array.isArray(f) ? f : f?.forests || []) names[k.id] = k.name;
+      setCatalog(names);
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const eventLabel = (id: string, hz: HazardType) => {
+    const name = catalog[id] ?? buildSmokeScenario(hz, id, null).label;
+    return hz === "volcano" ? volcanoName(name, lang) : forestName(name, lang);
+  };
 
   const handleRunSimulation = async (targetHazard?: HazardType, targetEventId?: string) => {
     const activeHazard = targetHazard || hazard;
@@ -75,7 +123,7 @@ export const App: React.FC = () => {
     if (targetEventId) setEventId(targetEventId);
 
     setIsRunning(true);
-    setProgressText("Menghitung adveksi atmosferik 15 anggota ensemble (RK2)...");
+    setProgress({ en: "Computing atmospheric advection for 15 ensemble members (RK2)...", id: "Menghitung adveksi atmosferik 15 anggota ensemble (RK2)..." });
 
     // Samakan konstruksi overrides dengan standar backend (hanya mode experiment)
     let backendOverrides: Record<string, any> | null = null;
@@ -111,9 +159,9 @@ export const App: React.FC = () => {
       const simRes = await api.runSimulation(payload);
       const runId = simRes.run_id;
       setActiveRunId(runId);
-      setSimulatedEventName(simRes.scenario_label || activeEventId);
+      setSimulatedEvent({ id: activeEventId, hazard: activeHazard });
 
-      setProgressText("Mengekstrak kontur poligon & dampak populasi...");
+      setProgress({ en: "Extracting plume contours and population impact...", id: "Mengekstrak kontur poligon & dampak populasi..." });
 
       // Set pratinjau jam ke 12 agar poligon sebaran langsung terlihat di peta (sesuai fe-dummy)
       setCurrentHour(12);
@@ -131,18 +179,20 @@ export const App: React.FC = () => {
       setImpactData(impact);
       setValidationData(validation);
       setIsDrawerOpen(true);
-      setProgressText(`Selesai: ${simRes.scenario_label || "15 anggota ensemble"}`);
+      setProgress(mode === "experiment"
+        ? { en: "Done: hypothetical scenario, 15 ensemble members", id: "Selesai: skenario hipotetis, 15 anggota ensemble" }
+        : { en: "Done: observed event, 15 ensemble members", id: "Selesai: kejadian observasi, 15 anggota ensemble" });
     } catch (err: any) {
-      setProgressText(`Gagal: ${err.message || "Server offline"}`);
+      setProgress({ en: `Failed: ${err.message || "server offline"}`, id: `Gagal: ${err.message || "server tidak tersedia"}` });
     } finally {
       setIsRunning(false);
-      setTimeout(() => setProgressText(""), 4000);
+      setTimeout(() => setProgress(null), 4000);
     }
   };
 
   const handleRunDemo = async () => {
     setIsRunning(true);
-    setProgressText("Memulai putar demo otomatis...");
+    setProgress({ en: "Starting the automatic demo...", id: "Memulai putar demo otomatis..." });
 
     try {
       const demo = await api.playDemo(eventId).catch(() => null);
@@ -158,14 +208,14 @@ export const App: React.FC = () => {
           if (stepIdx >= demo.steps.length) {
             clearInterval(demoIntervalRef.current);
             demoIntervalRef.current = null;
-            setProgressText("Selesai memutar demo skenario.");
-            setTimeout(() => setProgressText(""), 3000);
+            setProgress({ en: "Finished playing the demo scenario.", id: "Selesai memutar demo skenario." });
+            setTimeout(() => setProgress(null), 3000);
             return;
           }
 
           const step = demo.steps[stepIdx];
           setCurrentHour(step.hour);
-          setProgressText(step.commentary || step.time_label);
+          setProgress(demoCommentary(step.hour, hazard));
           stepIdx++;
         }, 1200);
       } else {
@@ -209,9 +259,9 @@ export const App: React.FC = () => {
         {activeRunId && (
           <div className="absolute top-3.5 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-full px-3.5 py-1 z-[1000] text-xs flex items-center gap-2 shadow-xl pointer-events-none">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-slate-300">Simulasi Aktif:</span>
-            <strong className="text-white font-semibold">{simulatedEventName}</strong>
-            <span className="text-sky-400 font-mono text-[11px]">(H+{currentHour}:00)</span>
+            <span className="text-slate-300">{lang === "id" ? "Simulasi aktif:" : "Active simulation:"}</span>
+            <strong className="text-white font-semibold">{eventLabel(simulatedEvent.id, simulatedEvent.hazard)}</strong>
+            <span className="text-sky-400 font-mono text-[11px]">(T+{currentHour}:00)</span>
           </div>
         )}
 

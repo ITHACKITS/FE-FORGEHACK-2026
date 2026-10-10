@@ -75,6 +75,10 @@ flowchart LR
 - **Header and defaults:** airports start unchecked on `/simulate`. The simulator header spans the full width and never wraps; labels hide progressively on narrow screens (no overflow from 360 px up). The landing nav labels never wrap; the nav collapses into the menu below 1280 px.
 - **Not done (needs backend + AI):** AI summaries or chat per time frame (Featherless GLM/Qwen via the AI service, exposed by a backend endpoint); the landing-page empty gap.
 
+**Update 2026-10-10 21:00 WIB** (branch `fix/i18n-and-fast-loading`):
+- **One language at a time:** EN mode shows no Indonesian and ID mode no English (proper nouns and agency names aside). Landing: rail tooltips, vista captions, references, units and ARIA labels go through `DICT` (`data-i18n`, new `data-i18n-attr`, `data-scene-name`, `data-num` for locale numbers). Simulator: `useTr()` in `src/context/useLanguage.ts` returns `tr(en, id)`; API values (levels, volcano/forest names, regions, provinces, forest types and risk) are mapped in `src/utils/apiLabels.ts`; demo narration and progress messages are built in the frontend in both languages. The simulator now defaults to English like the landing page.
+- **Loading page:** no "Skip intro"; the intro plays at 2x for 1.6 s, then fades and opens `/simulator.html` (about 2-3 s in total).
+
 ## 6. Conventions
 - **Stack:** React 19 function components, TypeScript strict, Vite 8, Tailwind v4 for layout glue, prototype CSS tokens for all colours, `oxlint`.
 - **Config:** `VITE_API_BASE_URL`, `VITE_TELEGRAM_BOT_URL`. Never put API keys in the frontend.

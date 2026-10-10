@@ -31,8 +31,8 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
     : 7;
 
   const fireCount = kpi?.wildfire_hotspots?.active_24h_firms !== undefined
-    ? Number(kpi.wildfire_hotspots.active_24h_firms).toLocaleString("en-US")
-    : "1,680";
+    ? Number(kpi.wildfire_hotspots.active_24h_firms).toLocaleString(lang === "id" ? "id-ID" : "en-US")
+    : (1680).toLocaleString(lang === "id" ? "id-ID" : "en-US");
 
   useEffect(() => {
     const updateTime = () => {
@@ -81,7 +81,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
       setSyncStatus(`${t.synced} (${res.latency_ms || 92}ms)`);
       await loadKpi();
     } catch {
-      setSyncStatus("Failed");
+      setSyncStatus(lang === "id" ? "Gagal" : "Failed");
     } finally {
       setIsSyncing(false);
       setTimeout(() => setSyncStatus(null), 3000);
@@ -101,7 +101,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
         >
           <img
             src="/Logo.png"
-            alt="StandbAI Logo"
+            alt={lang === "id" ? "Logo StandbAI" : "StandbAI logo"}
             className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0 drop-shadow-md select-none group-hover:scale-105 transition-transform"
           />
           <div className="flex items-center gap-1.5">
@@ -118,7 +118,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
         <div className="hidden xl:flex items-center gap-2.5">
           <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs backdrop-blur-md bg-white/10 border border-white/15 text-slate-100 shadow-sm transition hover:scale-105"
-            title="PVMBG Active Volcano Alert Status (Level III Watch & Level IV Warning)"
+            title={lang === "id" ? "Status gunung api aktif PVMBG (Level III Siaga & Level IV Awas)" : "PVMBG active volcano alert status (Level III Watch & Level IV Warning)"}
           >
             <svg className="w-3.5 h-3.5 shrink-0 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M2 22L12 2l10 20H2z" />
@@ -130,7 +130,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
 
           <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs backdrop-blur-md bg-white/10 border border-white/15 text-slate-100 shadow-sm transition hover:scale-105"
-            title="NASA FIRMS VIIRS Satellite Hotspots Last 24 Hours"
+            title={lang === "id" ? "Titik panas satelit NASA FIRMS VIIRS, 24 jam terakhir" : "NASA FIRMS VIIRS satellite hotspots, last 24 hours"}
           >
             <svg className="w-3.5 h-3.5 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M12 2c-4 4-6 8-6 12 0 4.4 3.6 8 8 8s8-3.6 8-8c0-3-2-6-5-8-1 3-3 4-5 2z" />
@@ -156,7 +156,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
           <button
             onClick={toggleLang}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer aurora-btn border border-cyan-500/40 text-cyan-300 hover:text-white hover:bg-cyan-500/20"
-            title={`Switch to ${lang === "en" ? "Bahasa Indonesia" : "English"}`}
+            title={lang === "en" ? "Switch to Indonesian" : "Ganti ke bahasa Inggris"}
           >
             <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span className="font-mono tracking-wider">{lang.toUpperCase()}</span>
@@ -173,7 +173,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             onClick={handleSync}
             disabled={isSyncing}
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer disabled:opacity-50 aurora-btn"
-            title="Sync live NASA FIRMS & Open-Meteo data"
+            title={lang === "id" ? "Sinkronkan data langsung NASA FIRMS & Open-Meteo" : "Sync live NASA FIRMS & Open-Meteo data"}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-rose-400" : "text-emerald-400"}`} />
             <span className="hidden lg:inline">{syncStatus || t.liveSync}</span>
@@ -185,7 +185,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
               isLegendOpen ? "bg-white/30 border border-white/40 text-white shadow-lg" : "aurora-btn"
             }`}
-            title="Toggle Map Legend"
+            title={lang === "id" ? "Buka/tutup keterangan peta" : "Toggle map legend"}
           >
             <Layers className="w-3.5 h-3.5 text-purple-300" />
             <span className="hidden xs:inline">{t.mapLegend}</span>
@@ -197,7 +197,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
               isDrawerOpen ? "bg-white/30 border border-white/40 text-white shadow-lg" : "aurora-btn"
             }`}
-            title="Toggle Impact Projection Drawer"
+            title={lang === "id" ? "Buka/tutup panel proyeksi dampak" : "Toggle impact projection panel"}
           >
             <PanelRight className="w-3.5 h-3.5 text-rose-300" />
             <span className="hidden md:inline">{t.analyticsDrawer}</span>
@@ -207,7 +207,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="sm:hidden p-1.5 rounded-full transition cursor-pointer aurora-btn text-white"
-            title="Mobile Menu"
+            title={lang === "id" ? "Menu" : "Menu"}
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -234,7 +234,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
               </svg>
               <div>
                 <span className="text-[10px] block text-slate-400">{t.alertVolcanoes}</span>
-                <strong className="font-mono text-xs text-rose-300">{volcanoAlertCount} Active</strong>
+                <strong className="font-mono text-xs text-rose-300">{volcanoAlertCount} {lang === "id" ? "aktif" : "active"}</strong>
               </div>
             </div>
 
@@ -244,7 +244,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
               </svg>
               <div>
                 <span className="text-[10px] block text-slate-400">{t.hotspots}</span>
-                <strong className="font-mono text-xs text-amber-300">{fireCount} Active</strong>
+                <strong className="font-mono text-xs text-amber-300">{fireCount} {lang === "id" ? "aktif" : "active"}</strong>
               </div>
             </div>
           </div>

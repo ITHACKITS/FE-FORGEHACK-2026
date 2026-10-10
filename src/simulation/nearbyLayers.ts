@@ -10,6 +10,8 @@
 
 import L from "leaflet";
 import type { SmokePath } from "../types/api";
+import type { Language } from "../utils/translations";
+import { forestName, forestRisk, forestType, pathName, volcanoLevel, volcanoName } from "../utils/apiLabels";
 
 export const MIN_RADIUS_KM = 100;
 export const MAX_RADIUS_KM = 500;
@@ -123,6 +125,10 @@ export class NearbyLayers {
   private hotspots: { ll: L.LatLng; marker: L.CircleMarker }[] = [];
   private ashPaths: { p: SmokePath; ll: L.LatLng; layer: L.LayerGroup }[] = [];
   private selectedId: string | null = null;
+  private lang: Language = "en";
+  private rawVolcanoes: VolcanoFeature[] = [];
+  private rawForests: Forest[] = [];
+  private rawPaths: { paths: SmokePath[]; every: number } | null = null;
   private vis: NearbyVisibility = { volcanoes: true, forests: true, hotspots: true, ashPaths: true };
   private ringVisible = true;
 
@@ -149,13 +155,24 @@ export class NearbyLayers {
     [this.ashGroup, this.hotspotGroup, this.forestGroup, this.volcanoGroup, this.radiusRing].forEach((l) => l.remove());
   }
 
+  /** Tooltips follow the UI language; labels are rebuilt when it changes. */
+  setLang(lang: Language) {
+    if (lang === this.lang) return;
+    this.lang = lang;
+    if (this.rawVolcanoes.length) this.setVolcanoes(this.rawVolcanoes);
+    if (this.rawForests.length) this.setForests(this.rawForests);
+    if (this.rawPaths) this.setAshPaths(this.rawPaths.paths, this.rawPaths.every);
+  }
+
   setVolcanoes(features: VolcanoFeature[]) {
+    this.rawVolcanoes = features;
     this.volcanoGroup.clearLayers();
     this.volcanoes = features.map((f) => {
       const [lon, lat] = f.geometry.coordinates;
       const p = f.properties;
-      const marker = L.marker([lat, lon], { icon: volcanoIcon(p.level), title: p.name, alt: p.name, keyboard: true });
-      marker.bindTooltip(textTooltip([p.name, p.level_name]), { direction: "top", offset: [0, -10] });
+      const name = volcanoName(p.name, this.lang);
+      const marker = L.marker([lat, lon], { icon: volcanoIcon(p.level), title: name, alt: name, keyboard: true });
+      marker.bindTooltip(textTooltip([name, volcanoLevel(p.level, this.lang)]), { direction: "top", offset: [0, -10] });
       marker.on("click", () => this.opts.onSelectVolcano(f));
       return { f, ll: L.latLng(lat, lon), marker };
     });
@@ -163,10 +180,12 @@ export class NearbyLayers {
   }
 
   setForests(list: Forest[]) {
+    this.rawForests = list;
     this.forestGroup.clearLayers();
     this.forests = list.map((f) => {
-      const marker = L.marker([f.lat, f.lon], { icon: FOREST_ICON, title: f.name, alt: f.name, keyboard: true });
-      marker.bindTooltip(textTooltip([f.name, [f.forest_type, f.risk_level].filter(Boolean).join(" · ")]), { direction: "top" });
+      const name = forestName(f.name, this.lang);
+      const marker = L.marker([f.lat, f.lon], { icon: FOREST_ICON, title: name, alt: name, keyboard: true });
+      marker.bindTooltip(textTooltip([name, [forestType(f.forest_type, this.lang), forestRisk(f.risk_level, this.lang)].filter(Boolean).join(" · ")]), { direction: "top" });
       marker.on("click", () => this.opts.onSelectForest(f));
       return { f, ll: L.latLng(f.lat, f.lon), marker };
     });
@@ -186,8 +205,11 @@ export class NearbyLayers {
         fillColor: hotspotColor(frp),
         fillOpacity: 0.9
       });
-      // Tooltip content is built on first hover, not up front for every point.
-      marker.bindTooltip(() => `VIIRS hotspot · FRP ${frp ? frp.toFixed(0) : "-"} MW${f.properties.acq_date ? ` · ${f.properties.acq_date}` : ""}`, { direction: "top" });
+      // Tooltip content is built on hover, in the language active at that moment.
+      marker.bindTooltip(
+        () => `${this.lang === "id" ? "Titik panas VIIRS" : "VIIRS hotspot"} · FRP ${frp ? frp.toFixed(0) : "-"} MW${f.properties.acq_date ? ` · ${f.properties.acq_date}` : ""}`,
+        { direction: "top" }
+      );
       return { ll: L.latLng(lat, lon), marker };
     });
     this.update();
@@ -195,7 +217,9 @@ export class NearbyLayers {
 
   /** Ash paths for Level III+ volcanoes; drawn only when their volcano is inside the radius. */
   setAshPaths(paths: SmokePath[], marksEveryH = 24) {
+    this.rawPaths = { paths, every: marksEveryH };
     this.ashGroup.clearLayers();
+    const id = this.lang === "id";
     this.ashPaths = paths
       .filter((p) => p.source_type === "volcano" && (p.level ?? 0) >= ALWAYS_SHOW_LEVEL && p.coords.length > 1)
       .map((p) => {
@@ -203,7 +227,10 @@ export class NearbyLayers {
         L.polyline(p.coords, { color: ASH_COLOR, weight: 2.4, opacity: 0.95, dashArray: "6 6", interactive: false }).addTo(layer);
         for (let h = marksEveryH; h < p.coords.length; h += marksEveryH) {
           L.circleMarker(p.coords[h], { renderer: this.renderer, radius: 3, color: ASH_COLOR, weight: 1.5, fillColor: "#0f172a", fillOpacity: 0.9 })
-            .bindTooltip(textTooltip([`${p.name} · ash +${h} h`, "Model estimate, not an official warning"]), { direction: "top" })
+            .bindTooltip(textTooltip([
+              `${pathName(p.name, this.lang)} · ${id ? "abu" : "ash"} +${h} ${id ? "jam" : "h"}`,
+              id ? "Estimasi model, bukan peringatan resmi" : "Model estimate, not an official warning"
+            ]), { direction: "top" })
             .addTo(layer);
         }
         return { p, ll: L.latLng(p.source.lat, p.source.lon), layer };

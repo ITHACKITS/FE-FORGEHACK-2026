@@ -6,7 +6,8 @@ import { CONFIG } from "../../config/constants";
 import { api } from "../../services/api";
 import { formatHour } from "../../utils/formatters";
 import type { HazardType, SimulationOverrides } from "../../types/api";
-import { useLanguage } from "../../context/useLanguage";
+import { useLanguage, useTr } from "../../context/useLanguage";
+import { compassLabel, forestName, volcanoName } from "../../utils/apiLabels";
 import { SmokeEngine } from "../../simulation/smokeEngine";
 import { buildSmokeScenario, windFromLabel } from "../../simulation/smokeScenarios";
 import { SmokeLeafletLayer } from "../../simulation/smokeLeafletLayer";
@@ -39,6 +40,11 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   smokeOverrides = null
 }) => {
   const { lang } = useLanguage();
+  const tr = useTr();
+  // Leaflet callbacks outlive a render, so they read the current language from a ref.
+  const langRef = useRef(lang);
+  langRef.current = lang;
+  const trNow = (en: string, id: string) => (langRef.current === "id" ? id : en);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const map3DContainerRef = useRef<HTMLDivElement>(null);
@@ -148,7 +154,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
   const handleShowMyLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      alert(trNow("Geolocation is not supported by your browser.", "Browser Anda tidak mendukung geolokasi."));
       return;
     }
 
@@ -182,9 +188,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         userLocationMarkerRef.current = marker;
         marker.bindPopup(
           `<div style="font-size:12px;line-height:1.6">
-            <strong>📍 Your Location</strong><br/>
+            <strong>📍 ${trNow("Your Location", "Lokasi Anda")}</strong><br/>
             <span style="color:#94a3b8">${latitude.toFixed(5)}°, ${longitude.toFixed(5)}°</span><br/>
-            <span style="color:#64748b;font-size:10px">Accuracy: ±${Math.round(accuracy)} m</span>
+            <span style="color:#64748b;font-size:10px">${trNow("Accuracy", "Akurasi")}: ±${Math.round(accuracy)} m</span>
           </div>`,
           { maxWidth: 220 }
         ).openPopup();
@@ -202,7 +208,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             if (address && userLocationMarkerRef.current) {
               userLocationMarkerRef.current.setPopupContent(
                 `<div style="font-size:12px;line-height:1.6">
-                  <strong>📍 Your Location</strong><br/>
+                  <strong>📍 ${trNow("Your Location", "Lokasi Anda")}</strong><br/>
                   <span style="color:#e2e8f0;font-size:11px">${address}</span><br/>
                   <span style="color:#64748b;font-size:10px">${latitude.toFixed(5)}°, ${longitude.toFixed(5)}° · ±${Math.round(accuracy)} m</span>
                 </div>`
@@ -217,11 +223,11 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       (err) => {
         setIsLocating(false);
         const messages: Record<number, string> = {
-          1: "Location permission was denied. Please allow location access in your browser settings and try again.",
-          2: "Location could not be determined. This can happen indoors or in areas with poor GPS signal. Try moving to an open area.",
-          3: "Location request timed out. Please try again."
+          1: trNow("Location permission was denied. Please allow location access in your browser settings and try again.", "Izin lokasi ditolak. Izinkan akses lokasi di pengaturan browser, lalu coba lagi."),
+          2: trNow("Location could not be determined. This can happen indoors or in areas with poor GPS signal. Try moving to an open area.", "Lokasi tidak dapat ditentukan. Ini bisa terjadi di dalam ruangan atau di area dengan sinyal GPS lemah. Coba pindah ke tempat terbuka."),
+          3: trNow("Location request timed out. Please try again.", "Permintaan lokasi melewati batas waktu. Silakan coba lagi.")
         };
-        alert(messages[err.code] ?? `Location error: ${err.message}`);
+        alert(messages[err.code] ?? `${trNow("Location error", "Galat lokasi")}: ${err.message}`);
       },
       {
         enableHighAccuracy: true,
@@ -393,6 +399,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       onSelectForest: (f) => onSelectEventRef.current(f.id, f.lat, f.lon, 0),
       onStats: setNearbyStats
     });
+    nearbyRef.current.setLang(langRef.current);
 
     api.getCoastline()
       .then((geo) => {
@@ -519,6 +526,16 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   }, [eventId]);
 
   useEffect(() => {
+    nearbyRef.current?.setLang(lang);
+    // Leaflet's own attribution link carries an English title; follow the UI language.
+    const ac = mapInstance?.attributionControl;
+    const prefix = ac?.options.prefix;
+    if (ac && typeof prefix === "string") {
+      ac.setPrefix(prefix.replace(/title="[^"]*"/, `title="${lang === "id" ? "Pustaka JavaScript untuk peta interaktif" : "A JavaScript library for interactive maps"}"`));
+    }
+  }, [lang, mapInstance]);
+
+  useEffect(() => {
     if (!mapRef.current) return;
     if (showAirports) airportsLayerRef.current?.addTo(mapRef.current);
     else airportsLayerRef.current?.remove();
@@ -628,7 +645,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           // Facility names come from the API, so render them as text, not HTML.
           const popup = document.createElement("div");
           popup.className = "text-xs p-1 font-bold text-slate-800";
-          popup.textContent = feature.properties.name || "Airport";
+          popup.textContent = feature.properties.name || trNow("Airport", "Bandara");
           layer.bindPopup(popup);
         }
       });
@@ -651,7 +668,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       fillOpacity: 0.12
     }).addTo(map);
 
-    krbCircleRef.current.bindTooltip(`Zona Rekomendasi Bahaya PVMBG (${radiusKm} km)`, { sticky: true });
+    krbCircleRef.current.bindTooltip(trNow(`PVMBG recommended danger zone (${radiusKm} km)`, `Zona Rekomendasi Bahaya PVMBG (${radiusKm} km)`), { sticky: true });
   };
 
   useEffect(() => {
@@ -682,13 +699,22 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       },
       onEachFeature: (feature: any, layer) => {
         const p = feature.properties;
-        const tierName = p.tier_label || (p.tier === "p90" || p.tier === "min" ? "Konsentrasi Tinggi (P90)" : (p.tier === "p50" || p.tier === "mid" ? "Konsentrasi Sedang (P50)" : "Jangkauan Maksimum (P05)"));
-        layer.bindTooltip(`<strong>${colors.label}</strong><br>Tingkat: ${tierName}<br>Waktu: ${formatHour(currentHour)}`, {
+        const high = p.tier === "p90" || p.tier === "min";
+        const mid = p.tier === "p50" || p.tier === "mid";
+        const tierName = high
+          ? tr("High concentration (P90)", "Konsentrasi tinggi (P90)")
+          : mid
+            ? tr("Moderate concentration (P50)", "Konsentrasi sedang (P50)")
+            : tr("Maximum reach (P05)", "Jangkauan maksimum (P05)");
+        const title = hazard === "fire"
+          ? tr("Peat fire smoke spread (PM2.5)", "Sebaran asap karhutla (PM2.5)")
+          : tr("Volcanic ash spread", "Sebaran abu vulkanik");
+        layer.bindTooltip(`<strong>${title}</strong><br>${tr("Tier", "Tingkat")}: ${tierName}<br>${tr("Time", "Waktu")}: ${formatHour(currentHour, lang)}`, {
           sticky: true
         });
       }
     }).addTo(map);
-  }, [currentHour, hourlyTiersCache, hazard, showPlume]);
+  }, [currentHour, hourlyTiersCache, hazard, showPlume, lang, tr]);
 
   // Calculate 3D perspective scale & translation to fill viewport seamlessly like Google Earth
   // (Only used when not in real Google Maps 3D mode)
@@ -779,7 +805,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         >
           <div className="flex items-center gap-2 flex-wrap">
             <strong className="text-white">
-              {lang === "id" ? "Simulasi asap" : "Smoke simulation"} · {smokeEngine.scenario.label}
+              {lang === "id" ? "Simulasi asap" : "Smoke simulation"} · {hazard === "volcano" ? volcanoName(smokeEngine.scenario.label, lang) : forestName(smokeEngine.scenario.label, lang)}
             </strong>
             <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border border-amber-300/60 text-amber-200">
               {lang === "id" ? "Data contoh" : "Example data"}
@@ -787,7 +813,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           </div>
           <div className="flex items-center justify-between gap-2 mt-0.5">
             <span className="font-mono text-[10px] text-slate-300">
-              {lang === "id" ? "Angin" : "Wind"} {smokeWind.speed.toFixed(1)} m/s {lang === "id" ? "dari" : "from"} {smokeWind.from} · T+{currentHour}h
+              {lang === "id" ? "Angin" : "Wind"} {smokeWind.speed.toLocaleString(lang === "id" ? "id-ID" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m/s {lang === "id" ? "dari" : "from"} {compassLabel(smokeWind.from, lang)} · T+{currentHour}{lang === "id" ? " jam" : "h"}
             </span>
             {!is3DMode && (
               <button
@@ -805,7 +831,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
                 }}
                 className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
               >
-                {lang === "id" ? "Zoom ke asap" : "Zoom to smoke"}
+                {lang === "id" ? "Fokus ke asap" : "Zoom to smoke"}
               </button>
             )}
           </div>
@@ -824,20 +850,20 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             <div className="text-[10px] text-rose-300 mt-0.5">{smoke3DError}</div>
           )}
           <div className="text-[10px] text-slate-400 mt-0.5">
-            Not an official warning. Follow BMKG, PVMBG and your local BPBD.
+            {tr("Not an official warning. Follow BMKG, PVMBG and your local BPBD.", "Bukan peringatan resmi. Ikuti arahan BMKG, PVMBG, dan BPBD setempat.")}
           </div>
         </div>
       )}
 
       {/* 4. Camera and coordinates readout */}
-      <CameraReadout map={mapInstance} />
+      <CameraReadout map={mapInstance} lang={lang} />
 
       {/* 5. Panel Lapisan Spasial Aktif (Kiri Bawah) */}
       {!isLayerPanelOpen ? (
         <button
           onClick={() => setIsLayerPanelOpen(true)}
           className="absolute bottom-20 left-2 sm:bottom-6 sm:left-4 z-[500] w-10 h-10 rounded-2xl shadow-2xl flex items-center justify-center transition cursor-pointer active:scale-95 group aurora-glass-card"
-          title="Tampilkan Lapisan Spasial"
+          title={tr("Show spatial layers", "Tampilkan lapisan spasial")}
         >
           <Layers className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
         </button>
@@ -903,8 +929,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           {nearbyStats && (
             <p className="pt-2 mt-0.5 border-t border-white/10 text-[10px] leading-snug text-slate-300 max-w-[240px]" role="status">
               {lang === "id"
-                ? `Ditampilkan dalam radius ${nearbyStats.radiusKm} km dari tengah peta: ${nearbyStats.volcanoes} gunung, ${nearbyStats.forests} hutan, ${nearbyStats.hotspots.toLocaleString()} titik api, ${nearbyStats.ashPaths} jalur abu. Gunung Level III–IV selalu tampil.`
-                : `Showing within ${nearbyStats.radiusKm} km of the map centre: ${nearbyStats.volcanoes} volcanoes, ${nearbyStats.forests} forests, ${nearbyStats.hotspots.toLocaleString()} hotspots, ${nearbyStats.ashPaths} ash paths. Level III–IV volcanoes always show.`}
+                ? `Ditampilkan dalam radius ${nearbyStats.radiusKm} km dari tengah peta: ${nearbyStats.volcanoes} gunung, ${nearbyStats.forests} hutan, ${nearbyStats.hotspots.toLocaleString("id-ID")} titik api, ${nearbyStats.ashPaths} jalur abu. Gunung Level III–IV selalu tampil.`
+                : `Showing within ${nearbyStats.radiusKm} km of the map centre: ${nearbyStats.volcanoes} volcanoes, ${nearbyStats.forests} forests, ${nearbyStats.hotspots.toLocaleString("en-US")} hotspots, ${nearbyStats.ashPaths} ash paths. Level III–IV volcanoes always show.`}
             </p>
           )}
         </div>
@@ -1016,7 +1042,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             type="button"
             onClick={handleOpenStreetView}
             className="w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer hover:scale-110 active:scale-95 bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-md"
-            title="Show Street View (Google Maps 360 Viewer)"
+            title={tr("Show Street View (Google Maps 360° viewer)", "Tampilkan Street View (penampil 360° Google Maps)")}
           >
             <User className="w-4 h-4" />
           </button>
@@ -1031,7 +1057,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
                 ? "bg-sky-500/40 text-sky-300 animate-pulse border-sky-400"
                 : "bg-white/10 text-slate-200 border-white/15 hover:bg-white/20"
             }`}
-            title="Show your location (GPS Lokasi Anda)"
+            title={tr("Show your location (GPS)", "Tampilkan lokasi Anda (GPS)")}
           >
             <LocateFixed className={`w-4 h-4 ${isLocating ? "animate-spin" : ""}`} />
           </button>
@@ -1082,7 +1108,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             type="button"
             onClick={() => mapRef.current?.zoomOut()}
             className="w-8 h-9 flex items-center justify-center transition cursor-pointer active:scale-95 hover:bg-white/10 text-white border-r border-white/10"
-            title="Perkecil Peta (Zoom Out)"
+            title={tr("Zoom out", "Perkecil peta")}
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
@@ -1090,7 +1116,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             type="button"
             onClick={() => mapRef.current?.zoomIn()}
             className="w-8 h-9 flex items-center justify-center transition cursor-pointer active:scale-95 hover:bg-white/10 text-white"
-            title="Perbesar Peta (Zoom In)"
+            title={tr("Zoom in", "Perbesar peta")}
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -1112,9 +1138,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-amber-400" />
                 <div>
-                  <h3 className="text-sm font-extrabold text-white">Google Street View 360° Interactive</h3>
+                  <h3 className="text-sm font-extrabold text-white">{tr("Interactive Google Street View 360°", "Google Street View 360° Interaktif")}</h3>
                   <span className="text-[10px] font-mono text-slate-400">
-                    Koordinat: {streetViewCoords[0].toFixed(4)}, {streetViewCoords[1].toFixed(4)}
+                    {tr("Coordinates", "Koordinat")}: {streetViewCoords[0].toFixed(4)}, {streetViewCoords[1].toFixed(4)}
                   </span>
                 </div>
               </div>
@@ -1129,7 +1155,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             {/* Embedded StreetView iframe viewer */}
             <div className="flex-1 w-full bg-black relative">
               <iframe
-                title="Google Street View Panorama"
+                title={tr("Google Street View panorama", "Panorama Google Street View")}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -1143,13 +1169,13 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
             <div className="px-5 py-2.5 bg-black/40 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
               <span className="flex items-center gap-1.5 text-[11px]">
                 <Info className="w-3.5 h-3.5 text-sky-400" />
-                Seret tetikus pada jendela panorama untuk melihat sekeliling lokasi secara 360°.
+                {tr("Drag inside the panorama to look around the location in 360°.", "Seret tetikus pada jendela panorama untuk melihat sekeliling lokasi secara 360°.")}
               </span>
               <button
                 onClick={() => setIsStreetViewOpen(false)}
                 className="px-4 py-1 rounded-full aurora-btn text-xs font-bold"
               >
-                Tutup Viewer
+                {tr("Close viewer", "Tutup penampil")}
               </button>
             </div>
           </div>

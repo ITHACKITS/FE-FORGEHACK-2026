@@ -31,7 +31,7 @@
     display: grid;
     place-items: center;
     overflow: hidden;
-    transition: opacity .45s var(--ease);
+    transition: opacity .3s var(--ease);
   }
   body.leaving { opacity: 0; }
 
@@ -88,26 +88,7 @@
     transition: transform .25s linear;
   }
 
-  .skip {
-    position: fixed;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: max(16px, env(safe-area-inset-bottom));
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 16px;
-    border: 1px solid rgba(22, 48, 42, .2);
-    border-radius: 99px;
-    background: var(--bg);
-    color: var(--ink);
-    font: 600 14px/1 var(--sans);
-    text-decoration: none;
-    cursor: pointer;
-    transition: background-color .2s, border-color .2s;
-  }
-  .skip:hover { background: #F2F7F0; border-color: rgba(22, 48, 42, .4); }
-  .skip:focus-visible, .eye:focus-visible { outline: 3px solid var(--leaf); outline-offset: 3px; }
-  .skip svg { width: 16px; height: 16px; }
+  .eye:focus-visible { outline: 3px solid var(--leaf); outline-offset: 3px; }
 
   @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
@@ -129,22 +110,22 @@
     <div class="bar" aria-hidden="true"><i id="bar"></i></div>
   </div>
 </main>
-<a class="skip" id="skip" href="/simulator.html"><span id="skipLabel">Skip intro</span>
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
 
 <script>
 (function () {
-  // Interstitial between the landing page and the web simulator: plays the intro
-  // video once while the simulator's assets are prefetched, then hands over.
+  // Short interstitial between the landing page and the web simulator: the intro video
+  // plays at double speed while the simulator's assets are prefetched, then hands over.
+  // The whole page takes about 2 s (1.6 s intro + fade-out) after it has loaded.
   var TARGET = '/simulator.html' + location.search + location.hash;
-  var MAX_WAIT_MS = 14000;     // hard cap in case the video stalls
-  var START_GRACE_MS = 4000;   // give up on the video if it has not started by then
-  var REDUCED_MS = 1200;       // short static hold for prefers-reduced-motion
+  var INTRO_MS = 1600;         // intro length before leaving
+  var FADE_MS = 300;           // fade-out before the redirect
+  var REDUCED_MS = 1000;       // static hold for prefers-reduced-motion
+  var PLAYBACK_RATE = 2;       // the 10 s blink loop, shown at double speed
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var copy = {
-    en: { title: 'Standbai | Opening the web simulator', open: 'Opening the web simulator…', ready: 'Ready. Taking you there…', skip: 'Skip intro' },
-    id: { title: 'Standbai | Membuka simulator web', open: 'Membuka simulator web…', ready: 'Siap. Mengalihkan…', skip: 'Lewati intro' }
+    en: { title: 'Standbai | Opening the web simulator', open: 'Opening the web simulator…', ready: 'Ready. Taking you there…' },
+    id: { title: 'Standbai | Membuka simulator web', open: 'Membuka simulator web…', ready: 'Siap. Mengalihkan…' }
   };
   var lang = 'en';
   try { if (localStorage.getItem('standbai_lang') === 'id') lang = 'id'; } catch (e) { /* storage blocked */ }
@@ -155,26 +136,17 @@
   var video = document.getElementById('eye');
   var bar = document.getElementById('bar');
   var msg = document.getElementById('msg');
-  var skip = document.getElementById('skip');
   msg.textContent = t.open;
-  document.getElementById('skipLabel').textContent = t.skip;
-  skip.href = TARGET;
 
   var left = false;
   function go() {
     if (left) return;
     left = true;
-    bar.style.transform = 'scaleX(1)';
     msg.textContent = t.ready;
     document.body.classList.add('leaving');
     // replace() keeps this page out of history, so Back returns to the landing page.
-    setTimeout(function () { location.replace(TARGET); }, reduced ? 0 : 450);
+    setTimeout(function () { location.replace(TARGET); }, reduced ? 0 : FADE_MS);
   }
-
-  skip.addEventListener('click', function (e) { e.preventDefault(); go(); });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') go();
-  });
 
   // Warm the cache with the simulator's entry HTML, scripts and styles.
   fetch('/simulator.html', { credentials: 'same-origin' })
@@ -201,20 +173,17 @@
     return;
   }
 
-  setTimeout(go, MAX_WAIT_MS);
-
-  video.addEventListener('timeupdate', function () {
-    if (video.duration) bar.style.transform = 'scaleX(' + Math.min(1, video.currentTime / video.duration) + ')';
+  // The bar fills over the intro time, whether or not the video has loaded yet.
+  bar.style.transition = 'transform ' + INTRO_MS + 'ms linear';
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { bar.style.transform = 'scaleX(1)'; });
   });
-  video.addEventListener('ended', go);
-  video.addEventListener('error', go, true);
+  setTimeout(go, INTRO_MS);
 
-  var started = false;
-  video.addEventListener('playing', function () { started = true; });
-  setTimeout(function () { if (!started) go(); }, START_GRACE_MS);
-
+  video.playbackRate = PLAYBACK_RATE;
+  video.addEventListener('loadedmetadata', function () { video.playbackRate = PLAYBACK_RATE; });
   var p = video.play();
-  if (p && p.catch) p.catch(function () { /* autoplay blocked: the grace timer moves on */ });
+  if (p && p.catch) p.catch(function () { /* autoplay blocked: the poster stays and the timer moves on */ });
 })();
 </script>
 </body>

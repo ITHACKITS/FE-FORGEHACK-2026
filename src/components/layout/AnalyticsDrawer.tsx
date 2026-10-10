@@ -57,7 +57,7 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
         <button
           onClick={onClose}
           className="p-1.5 rounded-full transition cursor-pointer hover:bg-white/10 text-slate-300 hover:text-white"
-          title="Close Panel"
+          title={lang === "id" ? "Tutup Panel" : "Close Panel"}
         >
           <X className="w-4 h-4" />
         </button>
