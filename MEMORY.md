@@ -79,6 +79,10 @@ flowchart LR
 - **One language at a time:** EN mode shows no Indonesian and ID mode no English (proper nouns and agency names aside). Landing: rail tooltips, vista captions, references, units and ARIA labels go through `DICT` (`data-i18n`, new `data-i18n-attr`, `data-scene-name`, `data-num` for locale numbers). Simulator: `useTr()` in `src/context/useLanguage.ts` returns `tr(en, id)`; API values (levels, volcano/forest names, regions, provinces, forest types and risk) are mapped in `src/utils/apiLabels.ts`; demo narration and progress messages are built in the frontend in both languages. The simulator now defaults to English like the landing page.
 - **Loading page:** no "Skip intro"; the intro plays at 2x for 1.6 s, then fades and opens `/simulator.html` (about 2-3 s in total).
 
+**Update 2026-10-10 21:35 WIB** (branch `feat/ai-brief`): **AI brief** panel on `/simulate` (`src/components/layout/AiBrief.tsx`): "AI brief for this area" for the map centre or the user's GPS. It calls `GET /advice/nearby` and shows the scenario, an LLM-written headline, summary and 4-5 household actions (yellow AI badge), the facts the AI used, the model name and the disclaimer. The brief is rewritten when the language changes.
+
+**Update 2026-10-10 21:45 WIB** (branch `feat/ai-brief`): **simulation tools hidden for demos.** `/simulate` opens with the Simulation Control Center (incl. What-If Experiment), the T+0-48 timeline, the example smoke simulation and its card, the ensemble and example-smoke layer switches, the active-run pill and the Impact Analytics button hidden. A small icon-only button (sliders icon, top left under the header, faded until hovered or focused; aria-label only) shows or hides them again; state is not persisted, so every load starts in demo view.
+
 ## 6. Conventions
 - **Stack:** React 19 function components, TypeScript strict, Vite 8, Tailwind v4 for layout glue, prototype CSS tokens for all colours, `oxlint`.
 - **Config:** `VITE_API_BASE_URL`, `VITE_TELEGRAM_BOT_URL`. Never put API keys in the frontend.

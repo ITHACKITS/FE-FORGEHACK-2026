@@ -20,6 +20,8 @@ interface ControllerDockProps {
   isRunning: boolean;
   progressText: string;
   activeRunId?: string | null;
+  /** Tailwind top offset; App places the dock below the simulation-tools button. */
+  topClass?: string;
 }
 
 export const ControllerDock: React.FC<ControllerDockProps> = ({
@@ -35,7 +37,8 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
   onRunDemo,
   isRunning,
   progressText,
-  activeRunId
+  activeRunId,
+  topClass = "top-16 sm:top-20"
 }) => {
   const { lang } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
@@ -87,7 +90,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
 
   return (
     <div
-      className="absolute top-16 sm:top-20 left-2 sm:left-4 w-[calc(100%-1rem)] sm:w-80 max-w-sm max-h-[calc(100vh-140px)] aurora-glass-card rounded-2xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-all duration-300 text-slate-100"
+      className={`absolute ${topClass} left-2 sm:left-4 w-[calc(100%-1rem)] sm:w-80 max-w-sm max-h-[calc(100vh-180px)] aurora-glass-card rounded-2xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-all duration-300 text-slate-100`}
     >
       {/* Header Dock */}
       <div
@@ -129,7 +132,7 @@ export const ControllerDock: React.FC<ControllerDockProps> = ({
 
       {/* Body Dock */}
       {!isCollapsed && (
-        <div className="p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-210px)]">
+        <div className="p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-250px)]">
           {/* Hazard Selection */}
           <div>
             <label className="block text-[11px] font-bold mb-1.5 text-slate-300">

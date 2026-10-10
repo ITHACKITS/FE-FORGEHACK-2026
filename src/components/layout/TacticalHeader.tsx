@@ -10,13 +10,16 @@ interface TacticalHeaderProps {
   isDrawerOpen: boolean;
   onToggleLegend?: () => void;
   isLegendOpen?: boolean;
+  /** The impact drawer shows simulation results, so it hides with the simulation tools. */
+  showDrawerButton?: boolean;
 }
 
 export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
   onToggleDrawer,
   isDrawerOpen,
   onToggleLegend,
-  isLegendOpen = false
+  isLegendOpen = false,
+  showDrawerButton = true
 }) => {
   const { lang, toggleLang, t } = useLanguage();
   const [clockWib, setClockWib] = useState("--:--:-- WIB");
@@ -192,6 +195,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
           </button>
 
           {/* Impact Projection Button */}
+          {showDrawerButton && (
           <button
             onClick={onToggleDrawer}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
@@ -202,6 +206,7 @@ export const TacticalHeader: React.FC<TacticalHeaderProps> = ({
             <PanelRight className="w-3.5 h-3.5 text-rose-300" />
             <span className="hidden md:inline">{t.analyticsDrawer}</span>
           </button>
+          )}
 
           {/* Mobile Menu Toggle Button */}
           <button
